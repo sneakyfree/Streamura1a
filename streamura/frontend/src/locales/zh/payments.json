@@ -1,0 +1,90 @@
+{
+  "wallet": {
+    "title": "钱包",
+    "balance": "余额",
+    "availableBalance": "可用余额",
+    "pendingBalance": "待结算",
+    "lifetimeEarnings": "累计收入",
+    "withdraw": "提现",
+    "deposit": "充值",
+    "transactions": "交易记录"
+  },
+  "tips": {
+    "title": "发送打赏",
+    "subtitle": "支持这位创作者",
+    "amount": "金额",
+    "customAmount": "自定义金额",
+    "message": "留言（可选）",
+    "messagePlaceholder": "给您的打赏添加留言",
+    "sendButton": "发送打赏",
+    "success": "打赏发送成功！",
+    "thankYou": "感谢您的支持"
+  },
+  "subscription": {
+    "title": "订阅",
+    "subtitle": "通过月度订阅支持",
+    "tiers": "订阅等级",
+    "benefits": "权益",
+    "perMonth": "/月",
+    "perYear": "/年",
+    "subscribeButton": "订阅",
+    "manageButton": "管理订阅",
+    "cancelButton": "取消订阅",
+    "currentPlan": "当前方案",
+    "changeTier": "更改等级",
+    "renewsOn": "续订日期",
+    "canceledOn": "取消日期",
+    "expiresOn": "到期日期"
+  },
+  "shop": {
+    "title": "商店",
+    "badges": "徽章",
+    "emotes": "表情",
+    "effects": "特效",
+    "stickers": "贴纸",
+    "owned": "已拥有",
+    "equipped": "已装备",
+    "purchase": "购买",
+    "gift": "赠送",
+    "limited": "限量",
+    "exclusive": "订阅者专属",
+    "soldOut": "已售罄",
+    "inventory": "我的仓库",
+    "equip": "装备",
+    "unequip": "卸下"
+  },
+  "payout": {
+    "title": "提现设置",
+    "setup": "设置提现",
+    "connected": "已连接",
+    "pending": "待验证",
+    "requestPayout": "申请提现",
+    "minPayout": "最低提现金额",
+    "payoutHistory": "提现记录",
+    "nextPayout": "下次提现",
+    "bankAccount": "银行账户",
+    "stripeConnect": "连接 Stripe"
+  },
+  "transactions": {
+    "title": "交易记录",
+    "type": "类型",
+    "amount": "金额",
+    "date": "日期",
+    "status": "状态",
+    "tip": "打赏",
+    "subscription": "订阅",
+    "purchase": "购买",
+    "payout": "提现",
+    "refund": "退款",
+    "completed": "已完成",
+    "pending": "处理中",
+    "failed": "失败"
+  },
+  "errors": {
+    "insufficientFunds": "余额不足",
+    "paymentFailed": "支付失败",
+    "invalidAmount": "金额无效",
+    "minAmount": "最低金额为 {{amount}}",
+    "maxAmount": "最高金额为 {{amount}}"
+  }
+}

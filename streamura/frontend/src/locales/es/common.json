@@ -1,0 +1,90 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "discover": "Descubrir",
+    "goLive": "Transmitir",
+    "messages": "Mensajes",
+    "communities": "Comunidades",
+    "profile": "Perfil",
+    "settings": "Configuracion",
+    "logout": "Cerrar sesion",
+    "login": "Iniciar sesion",
+    "signup": "Registrarse"
+  },
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "back": "Atras",
+    "next": "Siguiente",
+    "loading": "Cargando...",
+    "retry": "Reintentar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "viewAll": "Ver todo",
+    "loadMore": "Cargar mas",
+    "showLess": "Mostrar menos",
+    "confirm": "Confirmar"
+  },
+  "labels": {
+    "username": "Nombre de usuario",
+    "email": "Correo electronico",
+    "password": "Contrasena",
+    "confirmPassword": "Confirmar contrasena",
+    "name": "Nombre",
+    "description": "Descripcion",
+    "title": "Titulo",
+    "category": "Categoria",
+    "tags": "Etiquetas",
+    "location": "Ubicacion",
+    "date": "Fecha",
+    "time": "Hora",
+    "status": "Estado",
+    "actions": "Acciones"
+  },
+  "status": {
+    "online": "En linea",
+    "offline": "Desconectado",
+    "live": "En vivo",
+    "ended": "Finalizado",
+    "scheduled": "Programado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente"
+  },
+  "time": {
+    "now": "Ahora mismo",
+    "minutesAgo": "Hace {{count}} minuto",
+    "minutesAgo_other": "Hace {{count}} minutos",
+    "hoursAgo": "Hace {{count}} hora",
+    "hoursAgo_other": "Hace {{count}} horas",
+    "daysAgo": "Hace {{count}} dia",
+    "daysAgo_other": "Hace {{count}} dias",
+    "today": "Hoy",
+    "yesterday": "Ayer"
+  },
+  "pagination": {
+    "page": "Pagina",
+    "of": "de",
+    "showing": "Mostrando",
+    "results": "resultados",
+    "previous": "Anterior",
+    "next": "Siguiente"
+  },
+  "empty": {
+    "noResults": "No se encontraron resultados",
+    "noData": "No hay datos disponibles",
+    "tryAgain": "Por favor intente mas tarde"
+  },
+  "footer": {
+    "copyright": "Todos los derechos reservados",
+    "terms": "Terminos de servicio",
+    "privacy": "Politica de privacidad",
+    "contact": "Contactenos"
+  }
+}

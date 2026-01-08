@@ -1,0 +1,49 @@
+{
+  "general": {
+    "somethingWentWrong": "出现错误",
+    "tryAgain": "请重试",
+    "pageNotFound": "页面未找到",
+    "unauthorized": "您无权访问此页面",
+    "forbidden": "访问被拒绝",
+    "serverError": "服务器错误",
+    "networkError": "网络错误，请检查您的连接",
+    "timeout": "请求超时",
+    "unknown": "发生未知错误"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "minLength": "至少需要{{min}}个字符",
+    "maxLength": "最多{{max}}个字符",
+    "email": "请输入有效的邮箱地址",
+    "url": "请输入有效的网址",
+    "number": "请输入有效的数字",
+    "min": "最小值为{{min}}",
+    "max": "最大值为{{max}}",
+    "pattern": "格式无效"
+  },
+  "auth": {
+    "sessionExpired": "您的会话已过期，请重新登录",
+    "invalidToken": "无效的认证令牌",
+    "accountBanned": "您的账号已被封禁",
+    "accountSuspended": "您的账号已被暂停"
+  },
+  "stream": {
+    "notFound": "直播未找到",
+    "ended": "此直播已结束",
+    "unavailable": "直播暂时不可用",
+    "connectionFailed": "连接直播失败",
+    "mediaError": "媒体播放错误"
+  },
+  "upload": {
+    "fileTooLarge": "文件过大，最大允许{{size}}",
+    "invalidType": "无效的文件类型，允许的类型：{{types}}",
+    "uploadFailed": "上传失败"
+  },
+  "moderation": {
+    "messageBlocked": "您的消息被屏蔽",
+    "userMuted": "您已被禁言",
+    "userBanned": "您已被此聊天室封禁",
+    "slowMode": "请等待后再发送消息",
+    "subscriberOnly": "仅订阅者可发言"
+  }
+}

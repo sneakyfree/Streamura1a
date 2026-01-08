@@ -1,0 +1,91 @@
+{
+  "profile": {
+    "title": "Profil",
+    "editProfile": "Modifier le Profil",
+    "followers": "Abonnes",
+    "following": "Abonnements",
+    "streams": "Directs",
+    "about": "A propos",
+    "joined": "Inscrit le",
+    "noStreams": "Aucun direct pour le moment",
+    "noBio": "Pas de biographie"
+  },
+  "follow": {
+    "follow": "Suivre",
+    "following": "Abonne",
+    "unfollow": "Se desabonner",
+    "followers": "Abonnes",
+    "followersCount": "{{count}} abonne",
+    "followersCount_other": "{{count}} abonnes",
+    "followingCount": "{{count}} abonnement",
+    "followingCount_other": "{{count}} abonnements",
+    "noFollowers": "Pas encore d'abonnes",
+    "noFollowing": "Ne suit personne"
+  },
+  "community": {
+    "title": "Communautes",
+    "create": "Creer une Communaute",
+    "join": "Rejoindre",
+    "leave": "Quitter",
+    "members": "Membres",
+    "membersCount": "{{count}} membre",
+    "membersCount_other": "{{count}} membres",
+    "about": "A propos",
+    "rules": "Regles",
+    "moderators": "Moderateurs",
+    "owner": "Proprietaire",
+    "public": "Publique",
+    "private": "Privee",
+    "noCommunities": "Aucune communaute trouvee",
+    "createFirst": "Creez la premiere!",
+    "joined": "Rejoint",
+    "discover": "Decouvrir",
+    "myCommunities": "Mes Communautes"
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "Nouveau Message",
+    "conversations": "Conversations",
+    "noMessages": "Aucun message",
+    "startConversation": "Demarrer une conversation",
+    "typeMessage": "Ecrivez un message...",
+    "send": "Envoyer",
+    "delivered": "Envoye",
+    "read": "Lu",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "lastSeen": "Vu {{time}}",
+    "typing": "ecrit..."
+  },
+  "block": {
+    "block": "Bloquer",
+    "unblock": "Debloquer",
+    "blocked": "Bloque",
+    "blockedUsers": "Utilisateurs Bloques",
+    "noBlockedUsers": "Aucun utilisateur bloque",
+    "blockConfirm": "Etes-vous sur de vouloir bloquer {{name}}?",
+    "blockDescription": "Cette personne ne pourra plus vous envoyer de messages ni voir votre contenu"
+  },
+  "report": {
+    "title": "Signaler",
+    "reason": "Raison",
+    "description": "Description",
+    "submit": "Envoyer le Signalement",
+    "spam": "Spam",
+    "harassment": "Harcelement",
+    "inappropriate": "Contenu Inapproprie",
+    "violence": "Violence",
+    "other": "Autre",
+    "success": "Signalement envoye avec succes"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification",
+    "newFollower": "{{name}} vous suit maintenant",
+    "newMessage": "Nouveau message de {{name}}",
+    "streamLive": "{{name}} est en direct",
+    "tipReceived": "Vous avez recu un pourboire de {{amount}}",
+    "subscribed": "{{name}} s'est abonne a vous"
+  }
+}

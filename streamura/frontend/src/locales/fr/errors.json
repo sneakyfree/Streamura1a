@@ -1,0 +1,49 @@
+{
+  "general": {
+    "somethingWentWrong": "Une erreur s'est produite",
+    "tryAgain": "Veuillez reessayer",
+    "pageNotFound": "Page non trouvee",
+    "unauthorized": "Vous n'etes pas autorise a acceder a cette page",
+    "forbidden": "Acces refuse",
+    "serverError": "Erreur serveur",
+    "networkError": "Erreur reseau. Verifiez votre connexion",
+    "timeout": "La requete a expire",
+    "unknown": "Une erreur inconnue s'est produite"
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "minLength": "Doit contenir au moins {{min}} caracteres",
+    "maxLength": "Doit contenir au maximum {{max}} caracteres",
+    "email": "Veuillez entrer une adresse email valide",
+    "url": "Veuillez entrer une URL valide",
+    "number": "Veuillez entrer un nombre valide",
+    "min": "Doit etre au moins {{min}}",
+    "max": "Doit etre au maximum {{max}}",
+    "pattern": "Format invalide"
+  },
+  "auth": {
+    "sessionExpired": "Votre session a expire. Veuillez vous reconnecter",
+    "invalidToken": "Jeton d'authentification invalide",
+    "accountBanned": "Votre compte a ete banni",
+    "accountSuspended": "Votre compte a ete suspendu"
+  },
+  "stream": {
+    "notFound": "Direct non trouve",
+    "ended": "Ce direct est termine",
+    "unavailable": "Direct temporairement indisponible",
+    "connectionFailed": "Echec de la connexion au direct",
+    "mediaError": "Erreur de lecture media"
+  },
+  "upload": {
+    "fileTooLarge": "Le fichier est trop volumineux. Taille maximale: {{size}}",
+    "invalidType": "Type de fichier invalide. Types autorises: {{types}}",
+    "uploadFailed": "Echec du telechargement"
+  },
+  "moderation": {
+    "messageBlocked": "Votre message a ete bloque",
+    "userMuted": "Vous avez ete mis en sourdine",
+    "userBanned": "Vous avez ete banni de ce chat",
+    "slowMode": "Veuillez attendre avant d'envoyer un autre message",
+    "subscriberOnly": "Seuls les abonnes peuvent discuter"
+  }
+}

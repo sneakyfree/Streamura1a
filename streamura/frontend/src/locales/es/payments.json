@@ -1,0 +1,90 @@
+{
+  "wallet": {
+    "title": "Billetera",
+    "balance": "Saldo",
+    "availableBalance": "Saldo Disponible",
+    "pendingBalance": "Pendiente",
+    "lifetimeEarnings": "Ganancias Totales",
+    "withdraw": "Retirar",
+    "deposit": "Agregar Fondos",
+    "transactions": "Transacciones"
+  },
+  "tips": {
+    "title": "Enviar una Propina",
+    "subtitle": "Apoya a este creador",
+    "amount": "Monto",
+    "customAmount": "Monto Personalizado",
+    "message": "Mensaje (opcional)",
+    "messagePlaceholder": "Agrega un mensaje a tu propina",
+    "sendButton": "Enviar Propina",
+    "success": "Propina enviada exitosamente!",
+    "thankYou": "Gracias por tu apoyo"
+  },
+  "subscription": {
+    "title": "Suscribirse",
+    "subtitle": "Apoya con una suscripcion mensual",
+    "tiers": "Niveles de Suscripcion",
+    "benefits": "Beneficios",
+    "perMonth": "/mes",
+    "perYear": "/ano",
+    "subscribeButton": "Suscribirse",
+    "manageButton": "Administrar Suscripcion",
+    "cancelButton": "Cancelar Suscripcion",
+    "currentPlan": "Plan Actual",
+    "changeTier": "Cambiar Nivel",
+    "renewsOn": "Se renueva el",
+    "canceledOn": "Cancelado el",
+    "expiresOn": "Expira el"
+  },
+  "shop": {
+    "title": "Tienda",
+    "badges": "Insignias",
+    "emotes": "Emotes",
+    "effects": "Efectos",
+    "stickers": "Stickers",
+    "owned": "Adquirido",
+    "equipped": "Equipado",
+    "purchase": "Comprar",
+    "gift": "Regalar",
+    "limited": "Limitado",
+    "exclusive": "Exclusivo para Suscriptores",
+    "soldOut": "Agotado",
+    "inventory": "Mi Inventario",
+    "equip": "Equipar",
+    "unequip": "Desequipar"
+  },
+  "payout": {
+    "title": "Configuracion de Pagos",
+    "setup": "Configurar Pagos",
+    "connected": "Conectado",
+    "pending": "Verificacion Pendiente",
+    "requestPayout": "Solicitar Pago",
+    "minPayout": "Pago Minimo",
+    "payoutHistory": "Historial de Pagos",
+    "nextPayout": "Proximo Pago",
+    "bankAccount": "Cuenta Bancaria",
+    "stripeConnect": "Conectar con Stripe"
+  },
+  "transactions": {
+    "title": "Historial de Transacciones",
+    "type": "Tipo",
+    "amount": "Monto",
+    "date": "Fecha",
+    "status": "Estado",
+    "tip": "Propina",
+    "subscription": "Suscripcion",
+    "purchase": "Compra",
+    "payout": "Pago",
+    "refund": "Reembolso",
+    "completed": "Completado",
+    "pending": "Pendiente",
+    "failed": "Fallido"
+  },
+  "errors": {
+    "insufficientFunds": "Fondos insuficientes",
+    "paymentFailed": "Pago fallido",
+    "invalidAmount": "Monto invalido",
+    "minAmount": "El monto minimo es {{amount}}",
+    "maxAmount": "El monto maximo es {{amount}}"
+  }
+}

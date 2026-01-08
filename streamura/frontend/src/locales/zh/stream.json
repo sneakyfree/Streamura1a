@@ -1,0 +1,92 @@
+{
+  "goLive": {
+    "title": "开始直播",
+    "subtitle": "向您的观众开始直播",
+    "streamTitle": "直播标题",
+    "streamTitlePlaceholder": "您正在直播什么？",
+    "streamDescription": "描述",
+    "streamDescriptionPlaceholder": "告诉观众可以期待什么",
+    "category": "分类",
+    "categoryPlaceholder": "选择一个分类",
+    "tags": "标签",
+    "tagsPlaceholder": "添加标签（按回车确认）",
+    "visibility": "可见性",
+    "public": "公开",
+    "private": "私密",
+    "monetization": "变现",
+    "enableTips": "启用打赏",
+    "startButton": "开始直播",
+    "endButton": "结束直播"
+  },
+  "viewer": {
+    "watching": "正在观看",
+    "viewers": "观众",
+    "started": "开始时间",
+    "duration": "时长",
+    "share": "分享",
+    "report": "举报",
+    "follow": "关注",
+    "following": "已关注",
+    "unfollow": "取消关注",
+    "like": "点赞",
+    "liked": "已点赞",
+    "tip": "打赏",
+    "subscribe": "订阅",
+    "subscribed": "已订阅",
+    "chat": "聊天",
+    "sendMessage": "发送消息",
+    "messagePlaceholder": "输入消息...",
+    "chatDisabled": "聊天已禁用",
+    "slowMode": "慢速模式已启用",
+    "subscriberOnly": "仅订阅者可发言"
+  },
+  "status": {
+    "live": "直播中",
+    "offline": "离线",
+    "ended": "直播已结束",
+    "starting": "即将开始",
+    "connecting": "连接中..."
+  },
+  "settings": {
+    "title": "直播设置",
+    "quality": "画质",
+    "autoQuality": "自动",
+    "lowLatency": "低延迟",
+    "theater": "剧场模式",
+    "fullscreen": "全屏",
+    "pip": "画中画",
+    "volume": "音量",
+    "mute": "静音",
+    "unmute": "取消静音"
+  },
+  "moderation": {
+    "title": "聊天管理",
+    "level": "管理级别",
+    "off": "关闭",
+    "relaxed": "宽松",
+    "standard": "标准",
+    "strict": "严格",
+    "slowMode": "慢速模式",
+    "allowLinks": "允许链接",
+    "subscriberOnly": "仅订阅者",
+    "followerOnly": "仅关注者",
+    "blockedWords": "屏蔽词",
+    "timeout": "禁言用户",
+    "ban": "封禁用户"
+  },
+  "analytics": {
+    "title": "直播数据",
+    "peakViewers": "最高观看",
+    "avgViewers": "平均观看",
+    "totalViews": "总观看量",
+    "watchTime": "观看时长",
+    "chatMessages": "聊天消息",
+    "newFollowers": "新增关注",
+    "earnings": "收入"
+  },
+  "empty": {
+    "noStreams": "暂无直播",
+    "noLiveStreams": "当前没有直播",
+    "checkBack": "稍后再来看看新内容"
+  }
+}

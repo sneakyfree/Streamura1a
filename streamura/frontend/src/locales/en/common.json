@@ -1,0 +1,90 @@
+{
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "goLive": "Go Live",
+    "messages": "Messages",
+    "communities": "Communities",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "viewAll": "View All",
+    "loadMore": "Load More",
+    "showLess": "Show Less",
+    "confirm": "Confirm"
+  },
+  "labels": {
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "description": "Description",
+    "title": "Title",
+    "category": "Category",
+    "tags": "Tags",
+    "location": "Location",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "live": "Live",
+    "ended": "Ended",
+    "scheduled": "Scheduled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending"
+  },
+  "time": {
+    "now": "Just now",
+    "minutesAgo": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "pagination": {
+    "page": "Page",
+    "of": "of",
+    "showing": "Showing",
+    "results": "results",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "empty": {
+    "noResults": "No results found",
+    "noData": "No data available",
+    "tryAgain": "Please try again later"
+  },
+  "footer": {
+    "copyright": "All rights reserved",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "contact": "Contact Us"
+  }
+}

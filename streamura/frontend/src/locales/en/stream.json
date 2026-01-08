@@ -1,0 +1,92 @@
+{
+  "goLive": {
+    "title": "Go Live",
+    "subtitle": "Start streaming to your audience",
+    "streamTitle": "Stream Title",
+    "streamTitlePlaceholder": "What are you streaming?",
+    "streamDescription": "Description",
+    "streamDescriptionPlaceholder": "Tell viewers what to expect",
+    "category": "Category",
+    "categoryPlaceholder": "Select a category",
+    "tags": "Tags",
+    "tagsPlaceholder": "Add tags (press Enter)",
+    "visibility": "Visibility",
+    "public": "Public",
+    "private": "Private",
+    "monetization": "Monetization",
+    "enableTips": "Enable Tips",
+    "startButton": "Start Streaming",
+    "endButton": "End Stream"
+  },
+  "viewer": {
+    "watching": "watching",
+    "viewers": "viewers",
+    "started": "Started",
+    "duration": "Duration",
+    "share": "Share",
+    "report": "Report",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "like": "Like",
+    "liked": "Liked",
+    "tip": "Send Tip",
+    "subscribe": "Subscribe",
+    "subscribed": "Subscribed",
+    "chat": "Chat",
+    "sendMessage": "Send a message",
+    "messagePlaceholder": "Type a message...",
+    "chatDisabled": "Chat is disabled",
+    "slowMode": "Slow mode enabled",
+    "subscriberOnly": "Subscriber only chat"
+  },
+  "status": {
+    "live": "LIVE",
+    "offline": "Offline",
+    "ended": "Stream Ended",
+    "starting": "Starting soon",
+    "connecting": "Connecting..."
+  },
+  "settings": {
+    "title": "Stream Settings",
+    "quality": "Quality",
+    "autoQuality": "Auto",
+    "lowLatency": "Low Latency",
+    "theater": "Theater Mode",
+    "fullscreen": "Fullscreen",
+    "pip": "Picture in Picture",
+    "volume": "Volume",
+    "mute": "Mute",
+    "unmute": "Unmute"
+  },
+  "moderation": {
+    "title": "Chat Moderation",
+    "level": "Moderation Level",
+    "off": "Off",
+    "relaxed": "Relaxed",
+    "standard": "Standard",
+    "strict": "Strict",
+    "slowMode": "Slow Mode",
+    "allowLinks": "Allow Links",
+    "subscriberOnly": "Subscriber Only",
+    "followerOnly": "Follower Only",
+    "blockedWords": "Blocked Words",
+    "timeout": "Timeout User",
+    "ban": "Ban User"
+  },
+  "analytics": {
+    "title": "Stream Analytics",
+    "peakViewers": "Peak Viewers",
+    "avgViewers": "Average Viewers",
+    "totalViews": "Total Views",
+    "watchTime": "Watch Time",
+    "chatMessages": "Chat Messages",
+    "newFollowers": "New Followers",
+    "earnings": "Earnings"
+  },
+  "empty": {
+    "noStreams": "No streams available",
+    "noLiveStreams": "No live streams right now",
+    "checkBack": "Check back later for new content"
+  }
+}

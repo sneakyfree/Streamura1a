@@ -1,0 +1,91 @@
+{
+  "profile": {
+    "title": "个人资料",
+    "editProfile": "编辑资料",
+    "followers": "粉丝",
+    "following": "关注",
+    "streams": "直播",
+    "about": "简介",
+    "joined": "加入时间",
+    "noStreams": "暂无直播",
+    "noBio": "暂无简介"
+  },
+  "follow": {
+    "follow": "关注",
+    "following": "已关注",
+    "unfollow": "取消关注",
+    "followers": "粉丝",
+    "followersCount": "{{count}}位粉丝",
+    "followersCount_other": "{{count}}位粉丝",
+    "followingCount": "关注{{count}}人",
+    "followingCount_other": "关注{{count}}人",
+    "noFollowers": "暂无粉丝",
+    "noFollowing": "暂未关注任何人"
+  },
+  "community": {
+    "title": "社区",
+    "create": "创建社区",
+    "join": "加入",
+    "leave": "退出",
+    "members": "成员",
+    "membersCount": "{{count}}位成员",
+    "membersCount_other": "{{count}}位成员",
+    "about": "简介",
+    "rules": "规则",
+    "moderators": "管理员",
+    "owner": "创建者",
+    "public": "公开",
+    "private": "私密",
+    "noCommunities": "未找到社区",
+    "createFirst": "创建第一个吧！",
+    "joined": "已加入",
+    "discover": "发现",
+    "myCommunities": "我的社区"
+  },
+  "messages": {
+    "title": "消息",
+    "newMessage": "新消息",
+    "conversations": "对话",
+    "noMessages": "暂无消息",
+    "startConversation": "发起对话",
+    "typeMessage": "输入消息...",
+    "send": "发送",
+    "delivered": "已送达",
+    "read": "已读",
+    "online": "在线",
+    "offline": "离线",
+    "lastSeen": "{{time}}前在线",
+    "typing": "正在输入..."
+  },
+  "block": {
+    "block": "屏蔽",
+    "unblock": "取消屏蔽",
+    "blocked": "已屏蔽",
+    "blockedUsers": "已屏蔽用户",
+    "noBlockedUsers": "暂无屏蔽用户",
+    "blockConfirm": "确定要屏蔽{{name}}吗？",
+    "blockDescription": "对方将无法给您发消息或查看您的内容"
+  },
+  "report": {
+    "title": "举报",
+    "reason": "原因",
+    "description": "描述",
+    "submit": "提交举报",
+    "spam": "垃圾信息",
+    "harassment": "骚扰",
+    "inappropriate": "不当内容",
+    "violence": "暴力",
+    "other": "其他",
+    "success": "举报提交成功"
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "全部标为已读",
+    "noNotifications": "暂无通知",
+    "newFollower": "{{name}}关注了您",
+    "newMessage": "来自{{name}}的新消息",
+    "streamLive": "{{name}}正在直播",
+    "tipReceived": "您收到了{{amount}}的打赏",
+    "subscribed": "{{name}}订阅了您"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "nav": {
+    "home": "首页",
+    "explore": "发现",
+    "events": "活动",
+    "following": "关注",
+    "profile": "个人资料",
+    "settings": "设置",
+    "admin": "管理",
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出登录",
+    "goLive": "开始直播"
+  },
+  "buttons": {
+    "submit": "提交",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "close": "关闭",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "refresh": "刷新",
+    "loadMore": "加载更多",
+    "viewAll": "查看全部"
+  },
+  "labels": {
+    "email": "邮箱",
+    "password": "密码",
+    "username": "用户名",
+    "displayName": "显示名称",
+    "bio": "个人简介",
+    "avatar": "头像",
+    "location": "位置",
+    "language": "语言"
+  },
+  "status": {
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "success": "成功！",
+    "error": "错误",
+    "online": "在线",
+    "offline": "离线"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}}分钟前",
+    "minutesAgo_other": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前",
+    "hoursAgo_other": "{{count}}小时前",
+    "daysAgo": "{{count}}天前",
+    "daysAgo_other": "{{count}}天前",
+    "weeksAgo": "{{count}}周前",
+    "weeksAgo_other": "{{count}}周前"
+  },
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "page": "第{{current}}页，共{{total}}页",
+    "showing": "显示第{{from}}至{{to}}条，共{{total}}条"
+  },
+  "empty": {
+    "noResults": "未找到结果",
+    "noData": "暂无数据"
+  },
+  "confirmDialog": {
+    "title": "确定吗？",
+    "description": "此操作无法撤销。"
+  }
+}

@@ -1,0 +1,41 @@
+# LiveKit Server Configuration
+# Development configuration - DO NOT use in production
+
+port: 7880
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+
+redis:
+  address: redis:6379
+
+keys:
+  devkey: secret_dev_key_do_not_use_in_production
+
+logging:
+  level: info
+  pion_level: error
+
+room:
+  # Maximum participants per room
+  max_participants: 100
+  # Empty room timeout (seconds)
+  empty_timeout: 300
+  # Departure timeout - time to wait before considering participant gone
+  departure_timeout: 20
+
+# Webhook configuration (for stream events)
+webhook:
+  urls:
+    - http://backend:8000/api/webhooks/livekit
+  api_key: devkey
+
+# Turn server configuration for NAT traversal
+turn:
+  enabled: true
+  domain: localhost
+  tls_port: 5349
+  udp_port: 3478

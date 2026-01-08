@@ -1,0 +1,90 @@
+{
+  "wallet": {
+    "title": "Wallet",
+    "balance": "Balance",
+    "availableBalance": "Available Balance",
+    "pendingBalance": "Pending",
+    "lifetimeEarnings": "Lifetime Earnings",
+    "withdraw": "Withdraw",
+    "deposit": "Add Funds",
+    "transactions": "Transactions"
+  },
+  "tips": {
+    "title": "Send a Tip",
+    "subtitle": "Support this creator",
+    "amount": "Amount",
+    "customAmount": "Custom Amount",
+    "message": "Message (optional)",
+    "messagePlaceholder": "Add a message to your tip",
+    "sendButton": "Send Tip",
+    "success": "Tip sent successfully!",
+    "thankYou": "Thank you for your support"
+  },
+  "subscription": {
+    "title": "Subscribe",
+    "subtitle": "Support with a monthly subscription",
+    "tiers": "Subscription Tiers",
+    "benefits": "Benefits",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "subscribeButton": "Subscribe",
+    "manageButton": "Manage Subscription",
+    "cancelButton": "Cancel Subscription",
+    "currentPlan": "Current Plan",
+    "changeTier": "Change Tier",
+    "renewsOn": "Renews on",
+    "canceledOn": "Canceled on",
+    "expiresOn": "Expires on"
+  },
+  "shop": {
+    "title": "Shop",
+    "badges": "Badges",
+    "emotes": "Emotes",
+    "effects": "Effects",
+    "stickers": "Stickers",
+    "owned": "Owned",
+    "equipped": "Equipped",
+    "purchase": "Purchase",
+    "gift": "Gift",
+    "limited": "Limited",
+    "exclusive": "Subscriber Exclusive",
+    "soldOut": "Sold Out",
+    "inventory": "My Inventory",
+    "equip": "Equip",
+    "unequip": "Unequip"
+  },
+  "payout": {
+    "title": "Payout Settings",
+    "setup": "Set Up Payouts",
+    "connected": "Connected",
+    "pending": "Pending Verification",
+    "requestPayout": "Request Payout",
+    "minPayout": "Minimum Payout",
+    "payoutHistory": "Payout History",
+    "nextPayout": "Next Payout",
+    "bankAccount": "Bank Account",
+    "stripeConnect": "Connect with Stripe"
+  },
+  "transactions": {
+    "title": "Transaction History",
+    "type": "Type",
+    "amount": "Amount",
+    "date": "Date",
+    "status": "Status",
+    "tip": "Tip",
+    "subscription": "Subscription",
+    "purchase": "Purchase",
+    "payout": "Payout",
+    "refund": "Refund",
+    "completed": "Completed",
+    "pending": "Pending",
+    "failed": "Failed"
+  },
+  "errors": {
+    "insufficientFunds": "Insufficient funds",
+    "paymentFailed": "Payment failed",
+    "invalidAmount": "Invalid amount",
+    "minAmount": "Minimum amount is {{amount}}",
+    "maxAmount": "Maximum amount is {{amount}}"
+  }
+}

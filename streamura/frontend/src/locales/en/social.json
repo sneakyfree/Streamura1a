@@ -1,0 +1,90 @@
+{
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "followers": "Followers",
+    "following": "Following",
+    "streams": "Streams",
+    "about": "About",
+    "joined": "Joined",
+    "noStreams": "No streams yet",
+    "noBio": "No bio yet"
+  },
+  "follow": {
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "followers": "Followers",
+    "followersCount": "{{count}} follower",
+    "followersCount_other": "{{count}} followers",
+    "followingCount": "{{count}} following",
+    "noFollowers": "No followers yet",
+    "noFollowing": "Not following anyone yet"
+  },
+  "community": {
+    "title": "Communities",
+    "create": "Create Community",
+    "join": "Join",
+    "leave": "Leave",
+    "members": "Members",
+    "membersCount": "{{count}} member",
+    "membersCount_other": "{{count}} members",
+    "about": "About",
+    "rules": "Rules",
+    "moderators": "Moderators",
+    "owner": "Owner",
+    "public": "Public",
+    "private": "Private",
+    "noCommunities": "No communities found",
+    "createFirst": "Create the first one!",
+    "joined": "Joined",
+    "discover": "Discover",
+    "myCommunities": "My Communities"
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "New Message",
+    "conversations": "Conversations",
+    "noMessages": "No messages yet",
+    "startConversation": "Start a conversation",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "delivered": "Delivered",
+    "read": "Read",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last seen {{time}}",
+    "typing": "typing..."
+  },
+  "block": {
+    "block": "Block",
+    "unblock": "Unblock",
+    "blocked": "Blocked",
+    "blockedUsers": "Blocked Users",
+    "noBlockedUsers": "No blocked users",
+    "blockConfirm": "Are you sure you want to block {{name}}?",
+    "blockDescription": "They won't be able to message you or see your content"
+  },
+  "report": {
+    "title": "Report",
+    "reason": "Reason",
+    "description": "Description",
+    "submit": "Submit Report",
+    "spam": "Spam",
+    "harassment": "Harassment",
+    "inappropriate": "Inappropriate Content",
+    "violence": "Violence",
+    "other": "Other",
+    "success": "Report submitted successfully"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "newFollower": "{{name}} started following you",
+    "newMessage": "New message from {{name}}",
+    "streamLive": "{{name}} is now live",
+    "tipReceived": "You received a tip of {{amount}}",
+    "subscribed": "{{name}} subscribed to you"
+  }
+}

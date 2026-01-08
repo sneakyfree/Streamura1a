@@ -1,0 +1,75 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "events": "Evenements",
+    "following": "Abonnements",
+    "profile": "Profil",
+    "settings": "Parametres",
+    "admin": "Administration",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "logout": "Deconnexion",
+    "goLive": "Diffuser en Direct"
+  },
+  "buttons": {
+    "submit": "Envoyer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "refresh": "Actualiser",
+    "loadMore": "Charger plus",
+    "viewAll": "Voir tout"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "username": "Nom d'utilisateur",
+    "displayName": "Nom d'affichage",
+    "bio": "Biographie",
+    "avatar": "Avatar",
+    "location": "Localisation",
+    "language": "Langue"
+  },
+  "status": {
+    "loading": "Chargement...",
+    "saving": "Enregistrement...",
+    "success": "Succes!",
+    "error": "Erreur",
+    "online": "En ligne",
+    "offline": "Hors ligne"
+  },
+  "time": {
+    "justNow": "A l'instant",
+    "minutesAgo": "il y a {{count}} minute",
+    "minutesAgo_other": "il y a {{count}} minutes",
+    "hoursAgo": "il y a {{count}} heure",
+    "hoursAgo_other": "il y a {{count}} heures",
+    "daysAgo": "il y a {{count}} jour",
+    "daysAgo_other": "il y a {{count}} jours",
+    "weeksAgo": "il y a {{count}} semaine",
+    "weeksAgo_other": "il y a {{count}} semaines"
+  },
+  "pagination": {
+    "previous": "Precedent",
+    "next": "Suivant",
+    "page": "Page {{current}} sur {{total}}",
+    "showing": "Affichage de {{from}} a {{to}} sur {{total}}"
+  },
+  "empty": {
+    "noResults": "Aucun resultat trouve",
+    "noData": "Aucune donnee disponible"
+  },
+  "confirmDialog": {
+    "title": "Etes-vous sur?",
+    "description": "Cette action ne peut pas etre annulee."
+  }
+}

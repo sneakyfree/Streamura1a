@@ -1,0 +1,92 @@
+{
+  "goLive": {
+    "title": "Diffuser en Direct",
+    "subtitle": "Commencez a diffuser pour votre audience",
+    "streamTitle": "Titre du Direct",
+    "streamTitlePlaceholder": "Que diffusez-vous?",
+    "streamDescription": "Description",
+    "streamDescriptionPlaceholder": "Dites aux spectateurs a quoi s'attendre",
+    "category": "Categorie",
+    "categoryPlaceholder": "Selectionnez une categorie",
+    "tags": "Tags",
+    "tagsPlaceholder": "Ajoutez des tags (appuyez sur Entree)",
+    "visibility": "Visibilite",
+    "public": "Public",
+    "private": "Prive",
+    "monetization": "Monetisation",
+    "enableTips": "Activer les Pourboires",
+    "startButton": "Lancer le Direct",
+    "endButton": "Terminer le Direct"
+  },
+  "viewer": {
+    "watching": "regardent",
+    "viewers": "spectateurs",
+    "started": "Demarre",
+    "duration": "Duree",
+    "share": "Partager",
+    "report": "Signaler",
+    "follow": "Suivre",
+    "following": "Abonne",
+    "unfollow": "Se desabonner",
+    "like": "J'aime",
+    "liked": "Aime",
+    "tip": "Envoyer un Pourboire",
+    "subscribe": "S'abonner",
+    "subscribed": "Abonne",
+    "chat": "Chat",
+    "sendMessage": "Envoyer un message",
+    "messagePlaceholder": "Ecrivez un message...",
+    "chatDisabled": "Le chat est desactive",
+    "slowMode": "Mode lent active",
+    "subscriberOnly": "Chat reserve aux abonnes"
+  },
+  "status": {
+    "live": "EN DIRECT",
+    "offline": "Hors ligne",
+    "ended": "Direct Termine",
+    "starting": "Commence bientot",
+    "connecting": "Connexion..."
+  },
+  "settings": {
+    "title": "Parametres du Direct",
+    "quality": "Qualite",
+    "autoQuality": "Automatique",
+    "lowLatency": "Faible Latence",
+    "theater": "Mode Cinema",
+    "fullscreen": "Plein Ecran",
+    "pip": "Image dans l'Image",
+    "volume": "Volume",
+    "mute": "Couper le son",
+    "unmute": "Activer le son"
+  },
+  "moderation": {
+    "title": "Moderation du Chat",
+    "level": "Niveau de Moderation",
+    "off": "Desactive",
+    "relaxed": "Detendu",
+    "standard": "Standard",
+    "strict": "Strict",
+    "slowMode": "Mode Lent",
+    "allowLinks": "Autoriser les Liens",
+    "subscriberOnly": "Abonnes Uniquement",
+    "followerOnly": "Followers Uniquement",
+    "blockedWords": "Mots Bloques",
+    "timeout": "Exclure l'Utilisateur",
+    "ban": "Bannir l'Utilisateur"
+  },
+  "analytics": {
+    "title": "Statistiques du Direct",
+    "peakViewers": "Pic de Spectateurs",
+    "avgViewers": "Moyenne de Spectateurs",
+    "totalViews": "Vues Totales",
+    "watchTime": "Temps de Visionnage",
+    "chatMessages": "Messages du Chat",
+    "newFollowers": "Nouveaux Followers",
+    "earnings": "Revenus"
+  },
+  "empty": {
+    "noStreams": "Aucun direct disponible",
+    "noLiveStreams": "Aucun direct en cours",
+    "checkBack": "Revenez plus tard pour du nouveau contenu"
+  }
+}

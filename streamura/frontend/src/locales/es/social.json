@@ -1,0 +1,90 @@
+{
+  "profile": {
+    "title": "Perfil",
+    "editProfile": "Editar Perfil",
+    "followers": "Seguidores",
+    "following": "Siguiendo",
+    "streams": "Transmisiones",
+    "about": "Acerca de",
+    "joined": "Se unio",
+    "noStreams": "Sin transmisiones aun",
+    "noBio": "Sin biografia aun"
+  },
+  "follow": {
+    "follow": "Seguir",
+    "following": "Siguiendo",
+    "unfollow": "Dejar de seguir",
+    "followers": "Seguidores",
+    "followersCount": "{{count}} seguidor",
+    "followersCount_other": "{{count}} seguidores",
+    "followingCount": "{{count}} siguiendo",
+    "noFollowers": "Sin seguidores aun",
+    "noFollowing": "No sigue a nadie aun"
+  },
+  "community": {
+    "title": "Comunidades",
+    "create": "Crear Comunidad",
+    "join": "Unirse",
+    "leave": "Salir",
+    "members": "Miembros",
+    "membersCount": "{{count}} miembro",
+    "membersCount_other": "{{count}} miembros",
+    "about": "Acerca de",
+    "rules": "Reglas",
+    "moderators": "Moderadores",
+    "owner": "Propietario",
+    "public": "Publica",
+    "private": "Privada",
+    "noCommunities": "No se encontraron comunidades",
+    "createFirst": "Crea la primera!",
+    "joined": "Unido",
+    "discover": "Descubrir",
+    "myCommunities": "Mis Comunidades"
+  },
+  "messages": {
+    "title": "Mensajes",
+    "newMessage": "Nuevo Mensaje",
+    "conversations": "Conversaciones",
+    "noMessages": "Sin mensajes aun",
+    "startConversation": "Inicia una conversacion",
+    "typeMessage": "Escribe un mensaje...",
+    "send": "Enviar",
+    "delivered": "Entregado",
+    "read": "Leido",
+    "online": "En linea",
+    "offline": "Desconectado",
+    "lastSeen": "Visto por ultima vez {{time}}",
+    "typing": "escribiendo..."
+  },
+  "block": {
+    "block": "Bloquear",
+    "unblock": "Desbloquear",
+    "blocked": "Bloqueado",
+    "blockedUsers": "Usuarios Bloqueados",
+    "noBlockedUsers": "Sin usuarios bloqueados",
+    "blockConfirm": "Estas seguro que quieres bloquear a {{name}}?",
+    "blockDescription": "No podran enviarte mensajes ni ver tu contenido"
+  },
+  "report": {
+    "title": "Reportar",
+    "reason": "Razon",
+    "description": "Descripcion",
+    "submit": "Enviar Reporte",
+    "spam": "Spam",
+    "harassment": "Acoso",
+    "inappropriate": "Contenido Inapropiado",
+    "violence": "Violencia",
+    "other": "Otro",
+    "success": "Reporte enviado exitosamente"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leido",
+    "noNotifications": "Sin notificaciones",
+    "newFollower": "{{name}} comenzo a seguirte",
+    "newMessage": "Nuevo mensaje de {{name}}",
+    "streamLive": "{{name}} esta en vivo",
+    "tipReceived": "Recibiste una propina de {{amount}}",
+    "subscribed": "{{name}} se suscribio a ti"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "wallet": {
+    "title": "Portefeuille",
+    "balance": "Solde",
+    "availableBalance": "Solde Disponible",
+    "pendingBalance": "En attente",
+    "lifetimeEarnings": "Revenus Totaux",
+    "withdraw": "Retirer",
+    "deposit": "Ajouter des Fonds",
+    "transactions": "Transactions"
+  },
+  "tips": {
+    "title": "Envoyer un Pourboire",
+    "subtitle": "Soutenez ce createur",
+    "amount": "Montant",
+    "customAmount": "Montant Personnalise",
+    "message": "Message (optionnel)",
+    "messagePlaceholder": "Ajoutez un message a votre pourboire",
+    "sendButton": "Envoyer le Pourboire",
+    "success": "Pourboire envoye avec succes!",
+    "thankYou": "Merci pour votre soutien"
+  },
+  "subscription": {
+    "title": "S'abonner",
+    "subtitle": "Soutenez avec un abonnement mensuel",
+    "tiers": "Niveaux d'Abonnement",
+    "benefits": "Avantages",
+    "perMonth": "/mois",
+    "perYear": "/an",
+    "subscribeButton": "S'abonner",
+    "manageButton": "Gerer l'Abonnement",
+    "cancelButton": "Annuler l'Abonnement",
+    "currentPlan": "Plan Actuel",
+    "changeTier": "Changer de Niveau",
+    "renewsOn": "Renouvellement le",
+    "canceledOn": "Annule le",
+    "expiresOn": "Expire le"
+  },
+  "shop": {
+    "title": "Boutique",
+    "badges": "Badges",
+    "emotes": "Emotes",
+    "effects": "Effets",
+    "stickers": "Autocollants",
+    "owned": "Possede",
+    "equipped": "Equipe",
+    "purchase": "Acheter",
+    "gift": "Offrir",
+    "limited": "Limite",
+    "exclusive": "Exclusif aux Abonnes",
+    "soldOut": "Epuise",
+    "inventory": "Mon Inventaire",
+    "equip": "Equiper",
+    "unequip": "Desequiper"
+  },
+  "payout": {
+    "title": "Parametres de Paiement",
+    "setup": "Configurer les Paiements",
+    "connected": "Connecte",
+    "pending": "Verification en Attente",
+    "requestPayout": "Demander un Paiement",
+    "minPayout": "Paiement Minimum",
+    "payoutHistory": "Historique des Paiements",
+    "nextPayout": "Prochain Paiement",
+    "bankAccount": "Compte Bancaire",
+    "stripeConnect": "Connecter avec Stripe"
+  },
+  "transactions": {
+    "title": "Historique des Transactions",
+    "type": "Type",
+    "amount": "Montant",
+    "date": "Date",
+    "status": "Statut",
+    "tip": "Pourboire",
+    "subscription": "Abonnement",
+    "purchase": "Achat",
+    "payout": "Paiement",
+    "refund": "Remboursement",
+    "completed": "Complete",
+    "pending": "En attente",
+    "failed": "Echoue"
+  },
+  "errors": {
+    "insufficientFunds": "Fonds insuffisants",
+    "paymentFailed": "Paiement echoue",
+    "invalidAmount": "Montant invalide",
+    "minAmount": "Le montant minimum est {{amount}}",
+    "maxAmount": "Le montant maximum est {{amount}}"
+  }
+}

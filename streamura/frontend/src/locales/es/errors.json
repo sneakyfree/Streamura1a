@@ -1,0 +1,49 @@
+{
+  "general": {
+    "somethingWentWrong": "Algo salio mal",
+    "tryAgain": "Por favor intenta de nuevo",
+    "pageNotFound": "Pagina no encontrada",
+    "unauthorized": "No estas autorizado para acceder a esta pagina",
+    "forbidden": "Acceso denegado",
+    "serverError": "Error del servidor",
+    "networkError": "Error de red. Por favor verifica tu conexion",
+    "timeout": "La solicitud expiro",
+    "unknown": "Ocurrio un error desconocido"
+  },
+  "validation": {
+    "required": "Este campo es requerido",
+    "minLength": "Debe tener al menos {{min}} caracteres",
+    "maxLength": "Debe tener maximo {{max}} caracteres",
+    "email": "Por favor ingresa un correo electronico valido",
+    "url": "Por favor ingresa una URL valida",
+    "number": "Por favor ingresa un numero valido",
+    "min": "Debe ser al menos {{min}}",
+    "max": "Debe ser maximo {{max}}",
+    "pattern": "Formato invalido"
+  },
+  "auth": {
+    "sessionExpired": "Tu sesion ha expirado. Por favor inicia sesion nuevamente",
+    "invalidToken": "Token de autenticacion invalido",
+    "accountBanned": "Tu cuenta ha sido baneada",
+    "accountSuspended": "Tu cuenta ha sido suspendida"
+  },
+  "stream": {
+    "notFound": "Transmision no encontrada",
+    "ended": "Esta transmision ha terminado",
+    "unavailable": "Transmision temporalmente no disponible",
+    "connectionFailed": "Error al conectar a la transmision",
+    "mediaError": "Error de reproduccion de medios"
+  },
+  "upload": {
+    "fileTooLarge": "El archivo es muy grande. El tamano maximo es {{size}}",
+    "invalidType": "Tipo de archivo invalido. Tipos permitidos: {{types}}",
+    "uploadFailed": "Error al subir archivo"
+  },
+  "moderation": {
+    "messageBlocked": "Tu mensaje fue bloqueado",
+    "userMuted": "Has sido silenciado",
+    "userBanned": "Has sido baneado de este chat",
+    "slowMode": "Por favor espera antes de enviar otro mensaje",
+    "subscriberOnly": "Solo los suscriptores pueden chatear"
+  }
+}

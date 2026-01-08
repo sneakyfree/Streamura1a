@@ -1,0 +1,92 @@
+{
+  "goLive": {
+    "title": "Transmitir en Vivo",
+    "subtitle": "Comienza a transmitir a tu audiencia",
+    "streamTitle": "Titulo de la Transmision",
+    "streamTitlePlaceholder": "Que estas transmitiendo?",
+    "streamDescription": "Descripcion",
+    "streamDescriptionPlaceholder": "Cuenta a los espectadores que esperar",
+    "category": "Categoria",
+    "categoryPlaceholder": "Selecciona una categoria",
+    "tags": "Etiquetas",
+    "tagsPlaceholder": "Agrega etiquetas (presiona Enter)",
+    "visibility": "Visibilidad",
+    "public": "Publico",
+    "private": "Privado",
+    "monetization": "Monetizacion",
+    "enableTips": "Habilitar Propinas",
+    "startButton": "Comenzar Transmision",
+    "endButton": "Terminar Transmision"
+  },
+  "viewer": {
+    "watching": "viendo",
+    "viewers": "espectadores",
+    "started": "Inicio",
+    "duration": "Duracion",
+    "share": "Compartir",
+    "report": "Reportar",
+    "follow": "Seguir",
+    "following": "Siguiendo",
+    "unfollow": "Dejar de seguir",
+    "like": "Me gusta",
+    "liked": "Te gusta",
+    "tip": "Enviar Propina",
+    "subscribe": "Suscribirse",
+    "subscribed": "Suscrito",
+    "chat": "Chat",
+    "sendMessage": "Enviar un mensaje",
+    "messagePlaceholder": "Escribe un mensaje...",
+    "chatDisabled": "El chat esta deshabilitado",
+    "slowMode": "Modo lento habilitado",
+    "subscriberOnly": "Solo para suscriptores"
+  },
+  "status": {
+    "live": "EN VIVO",
+    "offline": "Fuera de linea",
+    "ended": "Transmision Terminada",
+    "starting": "Comenzando pronto",
+    "connecting": "Conectando..."
+  },
+  "settings": {
+    "title": "Configuracion de Transmision",
+    "quality": "Calidad",
+    "autoQuality": "Automatico",
+    "lowLatency": "Baja Latencia",
+    "theater": "Modo Cine",
+    "fullscreen": "Pantalla Completa",
+    "pip": "Imagen en Imagen",
+    "volume": "Volumen",
+    "mute": "Silenciar",
+    "unmute": "Activar Sonido"
+  },
+  "moderation": {
+    "title": "Moderacion del Chat",
+    "level": "Nivel de Moderacion",
+    "off": "Desactivado",
+    "relaxed": "Relajado",
+    "standard": "Estandar",
+    "strict": "Estricto",
+    "slowMode": "Modo Lento",
+    "allowLinks": "Permitir Enlaces",
+    "subscriberOnly": "Solo Suscriptores",
+    "followerOnly": "Solo Seguidores",
+    "blockedWords": "Palabras Bloqueadas",
+    "timeout": "Silenciar Usuario",
+    "ban": "Banear Usuario"
+  },
+  "analytics": {
+    "title": "Analiticas de Transmision",
+    "peakViewers": "Maximo de Espectadores",
+    "avgViewers": "Promedio de Espectadores",
+    "totalViews": "Vistas Totales",
+    "watchTime": "Tiempo de Visualizacion",
+    "chatMessages": "Mensajes del Chat",
+    "newFollowers": "Nuevos Seguidores",
+    "earnings": "Ganancias"
+  },
+  "empty": {
+    "noStreams": "No hay transmisiones disponibles",
+    "noLiveStreams": "No hay transmisiones en vivo ahora",
+    "checkBack": "Vuelve mas tarde para nuevo contenido"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "general": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Please try again",
+    "pageNotFound": "Page not found",
+    "unauthorized": "You are not authorized to access this page",
+    "forbidden": "Access denied",
+    "serverError": "Server error",
+    "networkError": "Network error. Please check your connection",
+    "timeout": "Request timed out",
+    "unknown": "An unknown error occurred"
+  },
+  "validation": {
+    "required": "This field is required",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be at most {{max}} characters",
+    "email": "Please enter a valid email address",
+    "url": "Please enter a valid URL",
+    "number": "Please enter a valid number",
+    "min": "Must be at least {{min}}",
+    "max": "Must be at most {{max}}",
+    "pattern": "Invalid format"
+  },
+  "auth": {
+    "sessionExpired": "Your session has expired. Please log in again",
+    "invalidToken": "Invalid authentication token",
+    "accountBanned": "Your account has been banned",
+    "accountSuspended": "Your account has been suspended"
+  },
+  "stream": {
+    "notFound": "Stream not found",
+    "ended": "This stream has ended",
+    "unavailable": "Stream temporarily unavailable",
+    "connectionFailed": "Failed to connect to stream",
+    "mediaError": "Media playback error"
+  },
+  "upload": {
+    "fileTooLarge": "File is too large. Maximum size is {{size}}",
+    "invalidType": "Invalid file type. Allowed types: {{types}}",
+    "uploadFailed": "Upload failed"
+  },
+  "moderation": {
+    "messageBlocked": "Your message was blocked",
+    "userMuted": "You have been muted",
+    "userBanned": "You have been banned from this chat",
+    "slowMode": "Please wait before sending another message",
+    "subscriberOnly": "Only subscribers can chat"
+  }
+}
