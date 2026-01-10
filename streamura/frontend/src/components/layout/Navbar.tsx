@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Radio, Search, Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { Radio, Search, User, LogOut, Menu, X, ShoppingBag, Package } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
+import { NotificationBell } from '@/components/notifications';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -47,6 +48,13 @@ export function Navbar() {
             >
               Nearby
             </Link>
+            <Link
+              to="/shop"
+              className="text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              Shop
+            </Link>
           </div>
 
           {/* Search Bar */}
@@ -72,10 +80,7 @@ export function Navbar() {
                 >
                   {t('nav.goLive')}
                 </Link>
-                <button className="relative p-2 text-slate-300 hover:text-white transition-colors">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-                </button>
+                <NotificationBell />
                 <div className="flex items-center gap-3">
                   <Link
                     to="/profile"
@@ -147,6 +152,13 @@ export function Navbar() {
               >
                 Nearby
               </Link>
+              <Link
+                to="/shop"
+                className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center gap-2"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Shop
+              </Link>
             </div>
             {isAuthenticated ? (
               <>
@@ -155,6 +167,13 @@ export function Navbar() {
                   className="block w-full bg-accent-500 hover:bg-accent-600 text-white px-4 py-2 rounded-lg font-medium text-center"
                 >
                   Go Live
+                </Link>
+                <Link
+                  to="/inventory"
+                  className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center gap-2"
+                >
+                  <Package className="h-4 w-4" />
+                  My Inventory
                 </Link>
                 <button
                   onClick={handleLogout}

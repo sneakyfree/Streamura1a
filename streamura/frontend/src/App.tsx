@@ -16,6 +16,17 @@ import { AnalyticsPage } from '@/pages/Analytics';
 import { CommunitiesPage } from '@/pages/Communities';
 import { CommunityDetailPage } from '@/pages/CommunityDetail';
 import { MessagesPage } from '@/pages/Messages';
+import { AboutPage } from '@/pages/About';
+import { TermsPage } from '@/pages/Terms';
+import { PrivacyPage } from '@/pages/Privacy';
+import { ContactPage } from '@/pages/Contact';
+import { NotificationsPage } from '@/pages/Notifications';
+import { FeedPage } from '@/pages/Feed';
+import { ShopPage } from '@/pages/Shop';
+import { InventoryPage } from '@/pages/Inventory';
+import { SettingsPage } from '@/pages/Settings';
+import { ForgotPasswordPage } from '@/pages/ForgotPassword';
+import { ResetPasswordPage } from '@/pages/ResetPassword';
 import { useAuthStore } from '@/stores/authStore';
 
 const queryClient = new QueryClient({
@@ -39,10 +50,13 @@ function AppContent() {
       {/* Public routes without navbar */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Routes with navbar */}
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/feed" element={<FeedPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/trending" element={<DiscoverPage />} />
         <Route path="/nearby" element={<DiscoverPage />} />
@@ -59,12 +73,26 @@ function AppContent() {
 
         {/* Messaging routes */}
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+
+        {/* Shop routes */}
+        <Route path="/shop" element={<ShopPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+
+        {/* Settings */}
+        <Route path="/settings" element={<SettingsPage />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/reports" element={<ReportQueue />} />
         <Route path="/admin/moderation" element={<ModerationQueue />} />
+
+        {/* Legal/Info routes */}
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
       </Route>
     </Routes>
   );

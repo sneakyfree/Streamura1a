@@ -256,11 +256,34 @@ export const discoveryApi = {
   },
 };
 
+// Transform backend notification to frontend format
+function transformNotification(n: Record<string, unknown>): Notification {
+  return {
+    id: n.id as number,
+    user_id: n.user_id as number | undefined,
+    event_id: n.event_id as number | null | undefined,
+    stream_id: n.stream_id as number | null | undefined,
+    from_user_id: n.from_user_id as number | null | undefined,
+    transaction_id: n.transaction_id as number | null | undefined,
+    type: (n.notification_type || n.type || 'system') as Notification['type'],
+    notification_type: n.notification_type as Notification['type'] | undefined,
+    title: (n.title || '') as string,
+    message: (n.message || '') as string,
+    read: Boolean(n.is_read ?? n.read ?? false),
+    is_read: n.is_read as boolean | undefined,
+    is_pushed: n.is_pushed as boolean | undefined,
+    data: (n.extra_data || n.data || null) as Record<string, unknown> | null,
+    extra_data: n.extra_data as Record<string, unknown> | null | undefined,
+    created_at: (n.created_at || new Date().toISOString()) as string,
+    read_at: n.read_at as string | null | undefined,
+  };
+}
+
 // Notification API
 export const notificationApi = {
   getAll: async (): Promise<Notification[]> => {
-    const response = await api.get<Notification[]>('/notifications');
-    return response.data;
+    const response = await api.get<Record<string, unknown>[]>('/notifications');
+    return response.data.map(transformNotification);
   },
 
   markAsRead: async (notificationId: number): Promise<{ message: string }> => {

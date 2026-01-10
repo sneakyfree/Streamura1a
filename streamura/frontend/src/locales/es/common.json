@@ -45,7 +45,8 @@
     "date": "Fecha",
     "time": "Hora",
     "status": "Estado",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "language": "Idioma"
   },
   "status": {
     "online": "En linea",

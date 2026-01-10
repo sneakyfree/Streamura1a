@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { BroadcastView, BroadcastSetup } from '@/components/stream/BroadcastView';
 import { StripeOnboarding } from '@/components/payments';
+import { OptimalTimeWidget } from '@/components/analytics';
+import { predictionsApi } from '@/lib/api';
 import type { StreamCreate, Stream } from '@/types';
 
 const CATEGORIES = [
@@ -41,6 +43,9 @@ export function GoLivePage() {
   });
   const [tagInput, setTagInput] = useState('');
   const [useLocation, setUseLocation] = useState(false);
+  const [optimalTimes, setOptimalTimes] = useState<any[]>([]);
+  const [optimalTimesLoading, setOptimalTimesLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Check Stripe account status
   useEffect(() => {
@@ -59,6 +64,33 @@ export function GoLivePage() {
       checkStripeStatus();
     }
   }, [isAuthenticated]);
+
+  // Fetch optimal streaming times
+  useEffect(() => {
+    const fetchOptimalTimes = async () => {
+      setOptimalTimesLoading(true);
+      try {
+        const times = await predictionsApi.getOptimalTimes(selectedCategory || undefined, 10);
+        setOptimalTimes(times);
+      } catch (error) {
+        console.error('Failed to fetch optimal times:', error);
+        setOptimalTimes([]);
+      } finally {
+        setOptimalTimesLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchOptimalTimes();
+    }
+  }, [isAuthenticated, selectedCategory]);
+
+  // Sync category selection with form data
+  useEffect(() => {
+    if (formData.category && formData.category !== 'other') {
+      setSelectedCategory(formData.category);
+    }
+  }, [formData.category]);
 
   const canMonetize = stripeStatus?.onboarding_complete && stripeStatus?.payouts_enabled;
 
@@ -469,6 +501,15 @@ export function GoLivePage() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Optimal Times Widget */}
+            <OptimalTimeWidget
+              optimalTimes={optimalTimes}
+              isLoading={optimalTimesLoading}
+              category={selectedCategory || undefined}
+              onCategoryChange={(cat) => setSelectedCategory(cat)}
+              className="bg-slate-800/50"
+            />
 
             {/* Submit */}
             <div className="flex items-center justify-between">

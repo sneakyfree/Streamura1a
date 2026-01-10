@@ -37,6 +37,13 @@ export interface AuthState {
 }
 
 // Stream types
+export interface StreamUser {
+  id: number;
+  username: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+}
+
 export interface Stream {
   id: number;
   stream_key: string;
@@ -63,6 +70,8 @@ export interface Stream {
   tags: string[] | null;
   event_id: number | null;
   livekit_room_name: string | null;
+  // Optional user info - included in some API responses
+  user?: StreamUser;
 }
 
 export interface StreamCreate {
@@ -111,15 +120,41 @@ export interface EventCreate {
 }
 
 // Notification types
+export type NotificationType =
+  | 'follow'
+  | 'tip'
+  | 'stream_live'
+  | 'stream_scheduled'
+  | 'like'
+  | 'comment'
+  | 'subscription'
+  | 'community'
+  | 'system'
+  | 'warning'
+  | 'earnings'
+  | 'event'
+  | 'social'
+  | 'moderation'
+  | 'payout';
+
 export interface Notification {
   id: number;
-  notification_type: 'earnings' | 'event' | 'system' | 'social';
+  user_id?: number;
+  event_id?: number | null;
+  stream_id?: number | null;
+  from_user_id?: number | null;
+  transaction_id?: number | null;
+  type: NotificationType;  // alias for notification_type (frontend uses 'type')
+  notification_type?: NotificationType;  // backend field name
   title: string;
   message: string;
-  is_read: boolean;
+  read: boolean;  // alias for is_read (frontend uses 'read')
+  is_read?: boolean;  // backend field name
+  is_pushed?: boolean;
+  data?: Record<string, unknown> | null;  // alias for extra_data (frontend uses 'data')
+  extra_data?: Record<string, unknown> | null;  // backend field name
   created_at: string;
-  read_at: string | null;
-  metadata: Record<string, unknown> | null;
+  read_at?: string | null;
 }
 
 // API response types

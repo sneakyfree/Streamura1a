@@ -45,7 +45,8 @@
     "date": "Date",
     "time": "Time",
     "status": "Status",
-    "actions": "Actions"
+    "actions": "Actions",
+    "language": "Language"
   },
   "status": {
     "online": "Online",

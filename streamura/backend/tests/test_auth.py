@@ -95,7 +95,8 @@ class TestLogin:
             }
         )
         assert response.status_code == 401
-        assert "Incorrect" in response.json()["detail"]
+        # i18n message: "Invalid email or password"
+        assert "Invalid" in response.json()["detail"] or "password" in response.json()["detail"]
 
     def test_login_nonexistent_user(self, client: TestClient):
         """Test login with non-existent user fails."""

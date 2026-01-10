@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   analyticsApi,
+  predictionsApi,
   type CreatorOverview,
   type EarningsBreakdown,
   type TopStream,
@@ -24,6 +25,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OptimalTimeWidget } from '@/components/analytics';
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -105,6 +107,9 @@ export function AnalyticsPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [optimalTimes, setOptimalTimes] = useState<any[]>([]);
+  const [optimalTimesLoading, setOptimalTimesLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,6 +136,26 @@ export function AnalyticsPage() {
 
     fetchData();
   }, [period]);
+
+  // Fetch optimal streaming times
+  useEffect(() => {
+    const fetchOptimalTimes = async () => {
+      setOptimalTimesLoading(true);
+      try {
+        const times = await predictionsApi.getOptimalTimes(selectedCategory || undefined, 10);
+        setOptimalTimes(times);
+      } catch (error) {
+        console.error('Failed to fetch optimal times:', error);
+        setOptimalTimes([]);
+      } finally {
+        setOptimalTimesLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchOptimalTimes();
+    }
+  }, [user, selectedCategory]);
 
   if (!user) {
     return (
@@ -326,6 +351,50 @@ export function AnalyticsPage() {
                       {earnings?.transaction_count || 0}
                     </span>
                   </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Optimal Times & Predictions */}
+        <div className="grid lg:grid-cols-2 gap-6 mt-6">
+          <OptimalTimeWidget
+            optimalTimes={optimalTimes}
+            isLoading={optimalTimesLoading}
+            category={selectedCategory || undefined}
+            onCategoryChange={(cat) => setSelectedCategory(cat)}
+          />
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Link to="/stream/new" className="block">
+                <Button className="w-full justify-start gap-2" variant="secondary">
+                  <Video className="h-4 w-4" />
+                  Start a New Stream
+                </Button>
+              </Link>
+              <p className="text-sm text-slate-400">
+                Use the optimal times above to plan your next stream for maximum engagement.
+                Our ML predictions analyze your past performance and platform trends to suggest
+                the best times to go live.
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 rounded-lg bg-slate-800/50 text-center">
+                  <p className="text-2xl font-bold text-primary-400">
+                    {overview?.total_streams || 0}
+                  </p>
+                  <p className="text-xs text-slate-400">Total Streams</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-800/50 text-center">
+                  <p className="text-2xl font-bold text-green-400">
+                    {Math.round((overview?.avg_viewers_per_stream || 0) * (overview?.total_streams || 0))}
+                  </p>
+                  <p className="text-xs text-slate-400">Data Points</p>
                 </div>
               </div>
             </CardContent>

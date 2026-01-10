@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { User, Video, Settings, Bell, Shield, CheckCircle } from 'lucide-react';
+import { User, Video, Settings, Shield, CheckCircle, Crown, Package, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { WalletCard, TransactionList, PayoutSettings } from '@/components/payments';
 import { FollowersList } from '@/components/social';
+import { TierManagement } from '@/components/subscriptions/TierManagement';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -172,29 +174,55 @@ export function ProfilePage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Recent Streams */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">Your Streams</h2>
-                  <Link to="/stream/new">
-                    <Button size="sm">Go Live</Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Video className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400 mb-4">You haven't streamed yet</p>
-                  <Link to="/stream/new">
-                    <Button variant="secondary">Start Your First Stream</Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            <Tabs defaultValue="streams" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="streams" className="flex items-center gap-2">
+                  <Video className="h-4 w-4" />
+                  Streams
+                </TabsTrigger>
+                <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+                  <Crown className="h-4 w-4" />
+                  Subscriptions
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Transactions
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Transaction History */}
-            <TransactionList limit={10} />
+              <TabsContent value="streams">
+                {/* Recent Streams */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-white">Your Streams</h2>
+                      <Link to="/stream/new">
+                        <Button size="sm">Go Live</Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <Video className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-400 mb-4">You haven't streamed yet</p>
+                      <Link to="/stream/new">
+                        <Button variant="secondary">Start Your First Stream</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="subscriptions">
+                {/* Subscription Tier Management for Creators */}
+                <TierManagement creatorId={user.id} />
+              </TabsContent>
+
+              <TabsContent value="transactions">
+                {/* Transaction History */}
+                <TransactionList limit={10} />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Sidebar */}
@@ -212,14 +240,27 @@ export function ProfilePage() {
                   <Video className="h-5 w-5 text-accent-500" />
                   <span className="text-white">Go Live</span>
                 </Link>
-                <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors w-full text-left">
-                  <Bell className="h-5 w-5 text-primary-400" />
-                  <span className="text-white">Notification Settings</span>
-                </button>
-                <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors w-full text-left">
+                <Link
+                  to="/shop"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+                >
+                  <ShoppingBag className="h-5 w-5 text-purple-400" />
+                  <span className="text-white">Browse Shop</span>
+                </Link>
+                <Link
+                  to="/inventory"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+                >
+                  <Package className="h-5 w-5 text-blue-400" />
+                  <span className="text-white">My Inventory</span>
+                </Link>
+                <Link
+                  to="/settings"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+                >
                   <Settings className="h-5 w-5 text-slate-400" />
-                  <span className="text-white">Account Settings</span>
-                </button>
+                  <span className="text-white">Settings</span>
+                </Link>
               </CardContent>
             </Card>
 

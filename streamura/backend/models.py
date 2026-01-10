@@ -962,3 +962,29 @@ class OptimalStreamTime(Base):
 
     # Relationships
     user = relationship("User")
+
+
+class ContactSubmission(Base):
+    """Contact form submissions"""
+    __tablename__ = "contact_submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False)  # general, technical, billing, report, partnership, press
+    subject = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    status = Column(String(20), default="pending")  # pending, in_progress, resolved, closed
+
+    # Metadata
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(String(500), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    resolved_at = Column(DateTime, nullable=True)
+
+    # If submitted by logged-in user
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Admin notes
+    admin_notes = Column(Text, nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)

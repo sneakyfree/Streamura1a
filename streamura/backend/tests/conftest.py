@@ -52,6 +52,7 @@ def get_test_app():
     """Create FastAPI app for testing."""
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
+    from backend.i18n import LocaleMiddleware
 
     test_app = FastAPI()
     test_app.add_middleware(
@@ -61,6 +62,9 @@ def get_test_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add i18n middleware for Accept-Language header parsing
+    test_app.add_middleware(LocaleMiddleware)
 
     # Import and add routes
     from backend.api import router

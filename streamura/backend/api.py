@@ -27,16 +27,21 @@ from .auth import (
     get_current_active_user,
     get_current_user_optional,
     get_current_admin_user,
+    create_password_reset_token,
+    verify_password_reset_token,
+    reset_user_password,
     UserCreate,
     UserLogin,
     UserResponse,
-    Token
+    Token,
+    PasswordResetRequest,
+    PasswordResetConfirm,
 )
 from .models import (
     User, Stream, Event, Notification, ChatMessage, UserFollow, StreamLike,
     Report, ModerationAction, Recording, ScheduledStream, StreamAnalytics,
     Tip, Transaction, ContentFilter, ModerationQueueItem, StreamModerationSettings, ChatMute,
-    Conversation,
+    Conversation, ContactSubmission,
 )
 from .schemas import (
     StreamCreate,
@@ -67,8 +72,17 @@ from .websocket import (
     send_dm_read_receipt,
     dm_manager,
 )
+from .i18n import t, get_locale_from_request, DEFAULT_LANGUAGE
 import random
 import string
+
+
+def get_locale(request: Request) -> str:
+    """Get locale from request state or default to English."""
+    try:
+        return getattr(request.state, "locale", DEFAULT_LANGUAGE)
+    except AttributeError:
+        return DEFAULT_LANGUAGE
 
 
 # Pydantic models for streaming API
@@ -96,9 +110,10 @@ async def login_for_access_token(
     """Authenticate user and return access token (rate limited: 5/minute)"""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        locale = get_locale(request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail=t("auth.invalid_credentials", locale),
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -137,6 +152,65 @@ async def migrate_anonymous_user(
     user = migrate_anonymous_to_registered(db, anonymous_user_id, user_data)
     return user
 
+@router.post("/auth/password-reset/request")
+@limiter.limit("3/minute")
+async def request_password_reset(
+    request: Request,
+    reset_request: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """Request a password reset email (rate limited: 3/minute)"""
+    # Check if user exists
+    user = db.query(User).filter(User.email == reset_request.email).first()
+
+    # Always return success to prevent email enumeration
+    if user:
+        # Generate reset token
+        token = create_password_reset_token(reset_request.email)
+        # In production, send email with reset link
+        # For now, log the token (or return it in development)
+        # email_service.send_password_reset(user.email, token)
+        print(f"Password reset token for {reset_request.email}: {token}")
+
+    return {
+        "message": "If an account exists with that email, a password reset link has been sent."
+    }
+
+@router.post("/auth/password-reset/confirm")
+@limiter.limit("5/minute")
+async def confirm_password_reset(
+    request: Request,
+    reset_confirm: PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """Reset password using reset token (rate limited: 5/minute)"""
+    locale = get_locale(request)
+
+    # Verify token
+    email = verify_password_reset_token(reset_confirm.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Validate password length
+    if len(reset_confirm.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long"
+        )
+
+    # Reset password
+    success = reset_user_password(db, email, reset_confirm.new_password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to reset password"
+        )
+
+    return {"message": "Password has been reset successfully"}
+
 # User Routes
 @router.get("/users/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
@@ -144,11 +218,12 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 @router.get("/users/{user_id}", response_model=UserResponse)
-async def read_user(user_id: int, db: Session = Depends(get_db)):
+async def read_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     """Get user information by ID"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("user.not_found", locale))
     return user
 
 # Stream Routes
@@ -189,26 +264,29 @@ async def create_stream(
     return db_stream
 
 @router.get("/streams/{stream_id}", response_model=StreamResponse)
-async def read_stream(stream_id: int, db: Session = Depends(get_db)):
+async def read_stream(stream_id: int, request: Request, db: Session = Depends(get_db)):
     """Get stream information"""
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
     return stream
 
 @router.post("/streams/{stream_id}/start")
 async def start_stream(
     stream_id: int,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Start a stream"""
+    locale = get_locale(request)
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
 
     if stream.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to start this stream")
+        raise HTTPException(status_code=403, detail=t("stream.not_authorized", locale))
 
     stream.status = "live"
     stream.starts_at = datetime.utcnow()
@@ -223,16 +301,18 @@ async def start_stream(
 @router.post("/streams/{stream_id}/end")
 async def end_stream(
     stream_id: int,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """End a stream"""
+    locale = get_locale(request)
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
 
     if stream.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to end this stream")
+        raise HTTPException(status_code=403, detail=t("stream.not_authorized", locale))
 
     stream.status = "ended"
     stream.ends_at = datetime.utcnow()
@@ -253,16 +333,18 @@ async def end_stream(
 @router.post("/streams/{stream_id}/broadcast-token", response_model=StreamTokenResponse)
 async def get_broadcast_token(
     stream_id: int,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get a broadcast token for streaming to LiveKit"""
+    locale = get_locale(request)
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
 
     if stream.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to broadcast on this stream")
+        raise HTTPException(status_code=403, detail=t("stream.not_authorized", locale))
 
     # Initialize room and get broadcaster token
     connection_info = initialize_stream_room(db, stream, current_user)
@@ -273,19 +355,21 @@ async def get_broadcast_token(
 @router.post("/streams/{stream_id}/viewer-token", response_model=StreamTokenResponse)
 async def get_viewer_token(
     stream_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Get a viewer token to watch a stream"""
+    locale = get_locale(request)
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
 
     if not stream.is_public and (not current_user or stream.user_id != current_user.id):
-        raise HTTPException(status_code=403, detail="This stream is private")
+        raise HTTPException(status_code=403, detail=t("auth.forbidden", locale))
 
     if not stream.livekit_room_name:
-        raise HTTPException(status_code=400, detail="Stream has not been initialized for broadcasting")
+        raise HTTPException(status_code=400, detail=t("stream.unavailable", locale))
 
     # Get viewer connection info
     try:
@@ -298,12 +382,14 @@ async def get_viewer_token(
 @router.get("/streams/{stream_id}/status")
 async def get_stream_status(
     stream_id: int,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Get real-time stream status"""
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
-        raise HTTPException(status_code=404, detail="Stream not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("stream.not_found", locale))
 
     # Get live viewer count from WebSocket manager
     viewer_count = 0
@@ -672,7 +758,24 @@ async def schedule_stream(
     db.commit()
     db.refresh(scheduled)
 
-    # TODO: Create notification job for followers if notify_followers is True
+    # Create notifications for followers if notify_followers is True
+    if data.notify_followers:
+        followers = db.query(UserFollow).filter(UserFollow.following_id == current_user.id).all()
+        for follow in followers:
+            notification = Notification(
+                user_id=follow.follower_id,
+                type="stream_scheduled",
+                message=f"{current_user.username} scheduled a stream: {scheduled.title}",
+                data={
+                    "schedule_id": scheduled.id,
+                    "user_id": current_user.id,
+                    "username": current_user.username,
+                    "title": scheduled.title,
+                    "scheduled_start": scheduled.scheduled_start.isoformat() if scheduled.scheduled_start else None,
+                }
+            )
+            db.add(notification)
+        db.commit()
 
     return scheduled
 
@@ -1427,7 +1530,7 @@ async def get_nearby_events(
 
 
 @router.get("/events/{event_id}", response_model=EventDetailResponse)
-async def get_event_detail(event_id: int, db: Session = Depends(get_db)):
+async def get_event_detail(event_id: int, request: Request, db: Session = Depends(get_db)):
     """
     Get detailed event information including streams.
 
@@ -1436,7 +1539,8 @@ async def get_event_detail(event_id: int, db: Session = Depends(get_db)):
     """
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("event.not_found", locale))
 
     # Get all streams for this event
     streams = (
@@ -2343,6 +2447,7 @@ async def get_notifications(
 @router.post("/notifications/{notification_id}/read")
 async def mark_notification_read(
     notification_id: int,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -2357,7 +2462,8 @@ async def mark_notification_read(
     )
 
     if not notification:
-        raise HTTPException(status_code=404, detail="Notification not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("error.not_found", locale))
 
     notification.is_read = True
     notification.read_at = datetime.utcnow()
@@ -2636,12 +2742,13 @@ async def follow_user(
     db: Session = Depends(get_db)
 ):
     """Follow a user."""
+    locale = get_locale(request)
     if user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot follow yourself")
+        raise HTTPException(status_code=400, detail=t("error.validation", locale))
 
     target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=t("user.not_found", locale))
 
     # Check if already following
     existing = (
@@ -2652,7 +2759,7 @@ async def follow_user(
     )
 
     if existing:
-        raise HTTPException(status_code=400, detail="Already following this user")
+        raise HTTPException(status_code=400, detail=t("error.validation", locale))
 
     # Create follow
     follow = UserFollow(
@@ -2673,13 +2780,15 @@ async def follow_user(
 @router.delete("/users/{user_id}/follow")
 async def unfollow_user(
     user_id: int,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Unfollow a user."""
+    locale = get_locale(request)
     target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=t("user.not_found", locale))
 
     # Find and delete follow
     follow = (
@@ -2690,7 +2799,7 @@ async def unfollow_user(
     )
 
     if not follow:
-        raise HTTPException(status_code=400, detail="Not following this user")
+        raise HTTPException(status_code=400, detail=t("error.validation", locale))
 
     db.delete(follow)
 
@@ -2708,6 +2817,7 @@ async def unfollow_user(
 @router.get("/users/{user_id}/followers")
 async def get_user_followers(
     user_id: int,
+    request: Request,
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db)
@@ -2715,7 +2825,8 @@ async def get_user_followers(
     """Get list of users following this user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        locale = get_locale(request)
+        raise HTTPException(status_code=404, detail=t("user.not_found", locale))
 
     follows = (
         db.query(UserFollow)
@@ -5593,6 +5704,77 @@ async def trigger_history_aggregation(
 
         db.commit()
         return {"message": f"Aggregated history for {created} creators", "created": created}
+
+
+# ============================================================================
+# CONTACT FORM
+# ============================================================================
+
+class ContactFormRequest(BaseModel):
+    name: str
+    email: str
+    category: str  # general, technical, billing, report, partnership, press
+    subject: str
+    message: str
+
+
+class ContactFormResponse(BaseModel):
+    id: int
+    message: str
+
+
+@router.post("/contact", response_model=ContactFormResponse)
+@limiter.limit("3/hour")
+async def submit_contact_form(
+    request: Request,
+    data: ContactFormRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Submit a contact form.
+
+    Rate limited to 3 submissions per hour per IP address.
+    """
+    # Validate category
+    valid_categories = ["general", "technical", "billing", "report", "partnership", "press"]
+    if data.category not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}")
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, data.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    # Validate field lengths
+    if len(data.name) > 100:
+        raise HTTPException(status_code=400, detail="Name too long (max 100 characters)")
+    if len(data.subject) > 255:
+        raise HTTPException(status_code=400, detail="Subject too long (max 255 characters)")
+    if len(data.message) > 5000:
+        raise HTTPException(status_code=400, detail="Message too long (max 5000 characters)")
+
+    # Create submission
+    submission = ContactSubmission(
+        name=data.name,
+        email=data.email,
+        category=data.category,
+        subject=data.subject,
+        message=data.message,
+        ip_address=get_remote_address(request),
+        user_agent=request.headers.get("user-agent", "")[:500],
+        user_id=current_user.id if current_user else None,
+    )
+
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+
+    return ContactFormResponse(
+        id=submission.id,
+        message="Thank you for your message. We will respond within 24-48 hours."
+    )
 
 
 # Include the router in the main app

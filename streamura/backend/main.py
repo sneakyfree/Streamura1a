@@ -14,6 +14,8 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
+from .i18n import LocaleMiddleware
+
 # Load environment variables
 load_dotenv()
 
@@ -43,8 +45,11 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "Accept-Language"],
 )
+
+# Add i18n middleware for Accept-Language header parsing
+app.add_middleware(LocaleMiddleware)
 
 # Import and include API routes
 from .api import include_router

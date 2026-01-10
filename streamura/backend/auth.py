@@ -344,3 +344,44 @@ def refresh_access_token(refresh_token: str):
 
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+# Password Reset
+RESET_TOKEN_EXPIRE_HOURS = 24
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+def create_password_reset_token(email: str) -> str:
+    """Create a password reset token"""
+    expire = datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
+    to_encode = {
+        "sub": email,
+        "type": "password_reset",
+        "exp": expire
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_password_reset_token(token: str) -> Optional[str]:
+    """Verify password reset token and return email if valid"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "password_reset":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+def reset_user_password(db: Session, email: str, new_password: str) -> bool:
+    """Reset user's password"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return False
+
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    return True
