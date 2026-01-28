@@ -122,6 +122,10 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     read_at: Optional[datetime] = None
+    stream_id: Optional[int] = None
+    event_id: Optional[int] = None
+    from_user_id: Optional[int] = None
+    transaction_id: Optional[int] = None
     extra_data: Optional[dict] = None
 
     class Config:

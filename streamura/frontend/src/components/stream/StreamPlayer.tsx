@@ -31,6 +31,8 @@ import { Track, ConnectionState } from 'livekit-client';
 import type { Stream } from '@/types';
 import { fetchViewerToken } from '@/lib/livekit';
 import { Button } from '@/components/ui/Button';
+import { useAdManager } from '@/hooks/useAdManager';
+import { AdOverlay } from './AdOverlay';
 
 interface StreamPlayerProps {
   stream: Stream;
@@ -262,6 +264,19 @@ function RoomContent({
     return () => clearTimeout(timeout);
   }, [showControls]);
 
+  // Ad Manager
+  const {
+    currentAd,
+    isPlaying: isAdPlaying,
+    timeLeft,
+    skipAvailable,
+    handleSkip,
+    handleClick,
+  } = useAdManager({
+    streamId: room.name ? parseInt(room.name.split('_')[1] || '0') : undefined,
+    enabled: true
+  });
+
   return (
     <div
       className="relative w-full h-full"
@@ -270,6 +285,17 @@ function RoomContent({
     >
       {/* Video */}
       <VideoDisplay />
+
+      {/* Ad Overlay */}
+      {currentAd && isAdPlaying && (
+        <AdOverlay
+          ad={currentAd}
+          timeLeft={timeLeft}
+          skipAvailable={skipAvailable}
+          onSkip={handleSkip}
+          onClick={handleClick}
+        />
+      )}
 
       {/* Connection indicator */}
       <ConnectionIndicator />
@@ -285,11 +311,10 @@ function RoomContent({
         <ViewerCount />
       </div>
 
-      {/* Controls Overlay */}
+      {/* Controls Overlay - Hide when ad is playing unless mouse hover */}
       <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity z-10 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity z-10 ${showControls && !isAdPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
       >
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <PlayerControls

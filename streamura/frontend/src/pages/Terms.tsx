@@ -210,12 +210,7 @@ export function TermsPage() {
           </section>
         </div>
 
-        {/* Footer Navigation */}
-        <div className="mt-12 pt-8 border-t border-slate-700 flex flex-wrap justify-center gap-6 text-slate-400">
-          <Link to="/about" className="hover:text-white transition-colors">About</Link>
-          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-          <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
-        </div>
+
       </div>
     </div>
   );

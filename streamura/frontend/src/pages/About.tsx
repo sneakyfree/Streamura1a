@@ -198,14 +198,7 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Footer Links */}
-      <section className="py-8 px-4 border-t border-slate-800">
-        <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-6 text-slate-400">
-          <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-          <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
-        </div>
-      </section>
+
     </div>
   );
 }

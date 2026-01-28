@@ -1,75 +1,91 @@
 {
   "nav": {
     "home": "Accueil",
-    "explore": "Explorer",
-    "events": "Evenements",
-    "following": "Abonnements",
+    "discover": "Découvrir",
+    "goLive": "Diffuser en Direct",
+    "messages": "Messages",
+    "communities": "Communautés",
     "profile": "Profil",
-    "settings": "Parametres",
-    "admin": "Administration",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
     "login": "Connexion",
-    "register": "S'inscrire",
-    "logout": "Deconnexion",
-    "goLive": "Diffuser en Direct"
+    "signup": "S'inscrire"
   },
   "buttons": {
-    "submit": "Envoyer",
-    "cancel": "Annuler",
     "save": "Enregistrer",
+    "cancel": "Annuler",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "confirm": "Confirmer",
+    "create": "Créer",
+    "submit": "Envoyer",
+    "close": "Fermer",
     "back": "Retour",
     "next": "Suivant",
-    "close": "Fermer",
+    "loading": "Chargement...",
+    "retry": "Réessayer",
     "search": "Rechercher",
     "filter": "Filtrer",
     "sort": "Trier",
-    "refresh": "Actualiser",
+    "viewAll": "Voir tout",
     "loadMore": "Charger plus",
-    "viewAll": "Voir tout"
+    "showLess": "Afficher moins",
+    "confirm": "Confirmer"
   },
   "labels": {
+    "username": "Nom d'utilisateur",
     "email": "Email",
     "password": "Mot de passe",
-    "username": "Nom d'utilisateur",
-    "displayName": "Nom d'affichage",
-    "bio": "Biographie",
-    "avatar": "Avatar",
+    "confirmPassword": "Confirmer le mot de passe",
+    "name": "Nom",
+    "description": "Description",
+    "title": "Titre",
+    "category": "Catégorie",
+    "tags": "Mots-clés",
     "location": "Localisation",
+    "date": "Date",
+    "time": "Heure",
+    "status": "Statut",
+    "actions": "Actions",
     "language": "Langue"
   },
   "status": {
-    "loading": "Chargement...",
-    "saving": "Enregistrement...",
-    "success": "Succes!",
-    "error": "Erreur",
     "online": "En ligne",
-    "offline": "Hors ligne"
+    "offline": "Hors ligne",
+    "live": "En direct",
+    "ended": "Terminé",
+    "scheduled": "Programmé",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "pending": "En attente"
   },
   "time": {
-    "justNow": "A l'instant",
-    "minutesAgo": "il y a {{count}} minute",
-    "minutesAgo_other": "il y a {{count}} minutes",
-    "hoursAgo": "il y a {{count}} heure",
-    "hoursAgo_other": "il y a {{count}} heures",
-    "daysAgo": "il y a {{count}} jour",
-    "daysAgo_other": "il y a {{count}} jours",
-    "weeksAgo": "il y a {{count}} semaine",
-    "weeksAgo_other": "il y a {{count}} semaines"
+    "now": "À l'instant",
+    "minutesAgo": "Il y a {{count}} minute",
+    "minutesAgo_other": "Il y a {{count}} minutes",
+    "hoursAgo": "Il y a {{count}} heure",
+    "hoursAgo_other": "Il y a {{count}} heures",
+    "daysAgo": "Il y a {{count}} jour",
+    "daysAgo_other": "Il y a {{count}} jours",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier"
   },
   "pagination": {
-    "previous": "Precedent",
-    "next": "Suivant",
-    "page": "Page {{current}} sur {{total}}",
-    "showing": "Affichage de {{from}} a {{to}} sur {{total}}"
+    "page": "Page",
+    "of": "sur",
+    "showing": "Affichage de",
+    "results": "résultats",
+    "previous": "Précédent",
+    "next": "Suivant"
   },
   "empty": {
-    "noResults": "Aucun resultat trouve",
-    "noData": "Aucune donnee disponible"
+    "noResults": "Aucun résultat trouvé",
+    "noData": "Aucune donnée disponible",
+    "tryAgain": "Veuillez réessayer plus tard"
   },
-  "confirmDialog": {
-    "title": "Etes-vous sur?",
-    "description": "Cette action ne peut pas etre annulee."
+  "footer": {
+    "copyright": "Tous droits réservés",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "contact": "Nous contacter"
   }
 }

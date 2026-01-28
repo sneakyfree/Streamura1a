@@ -5,6 +5,7 @@ export interface User {
   email: string | null;
   phone_number: string | null;
   display_name?: string | null;
+  bio?: string | null;
   is_verified: boolean;
   is_admin: boolean;
   is_banned: boolean;
@@ -13,6 +14,9 @@ export interface User {
   follower_count: number;
   following_count: number;
   avatar_url: string | null;
+  onboarding_completed?: boolean;
+  preferred_category?: string | null;
+  instant_payouts_enabled?: boolean;
 }
 
 export interface UserCreate {

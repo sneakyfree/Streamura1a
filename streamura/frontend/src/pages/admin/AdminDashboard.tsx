@@ -193,6 +193,16 @@ export function AdminDashboard() {
                   <span className="text-xs text-slate-400">{stats?.streams.live || 0} live streams</span>
                 </div>
               </Link>
+              <Link
+                to="/admin/agents"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <Activity className="h-5 w-5 text-purple-400" />
+                <div>
+                  <span className="text-white block">Agent Dashboard</span>
+                  <span className="text-xs text-slate-400">AI agent monitoring</span>
+                </div>
+              </Link>
             </CardContent>
           </Card>
 

@@ -399,8 +399,34 @@ export const tipApi = {
 
 // Payout API
 export const payoutApi = {
+  getEarnings: async (): Promise<{
+    total_earned: number;
+    available_balance: number;
+    pending_balance: number;
+    stripe_connected: boolean;
+    stripe_onboarding_url: string | null;
+  }> => {
+    const response = await api.get('/payouts/earnings');
+    return response.data;
+  },
+
+  getHistory: async (limit: number = 20, offset: number = 0): Promise<{
+    id: number;
+    amount: number;
+    status: string;
+    created_at: string;
+  }[]> => {
+    const response = await api.get('/payouts/history', { params: { limit, offset } });
+    return response.data;
+  },
+
   requestPayout: async (data: PayoutRequest): Promise<PayoutResponse> => {
     const response = await api.post<PayoutResponse>('/payouts', data);
+    return response.data;
+  },
+
+  requestInstantPayout: async (data: PayoutRequest): Promise<PayoutResponse & { fee_amount: number }> => {
+    const response = await api.post<PayoutResponse & { fee_amount: number }>('/payouts/instant', data);
     return response.data;
   },
 };
@@ -455,6 +481,83 @@ export const chatApi = {
     const response = await api.delete(`/chat/${messageId}`, {
       params: reason ? { reason } : undefined,
     });
+    return response.data;
+  },
+};
+
+// Moderation API
+export const moderationApi = {
+  muteUser: async (streamId: number, userId: number, duration?: number, reason?: string): Promise<{ message: string }> => {
+    const response = await api.post(`/streams/${streamId}/moderation/mute`, {
+      user_id: userId,
+      duration_seconds: duration,
+      reason
+    });
+    return response.data;
+  },
+
+  unmuteUser: async (streamId: number, userId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/streams/${streamId}/moderation/unmute`, null, {
+      params: { user_id: userId }
+    });
+    return response.data;
+  },
+
+  // Stream moderation settings
+  getStreamSettings: async (streamId: number): Promise<StreamModerationSettings> => {
+    const response = await api.get<StreamModerationSettings>(`/streams/${streamId}/moderation/settings`);
+    return response.data;
+  },
+
+  updateStreamSettings: async (
+    streamId: number,
+    settings: Partial<StreamModerationSettings>
+  ): Promise<StreamModerationSettings> => {
+    const response = await api.put<StreamModerationSettings>(`/streams/${streamId}/moderation/settings`, settings);
+    return response.data;
+  },
+
+  // Admin: Moderation queue
+  getQueue: async (params: {
+    status?: string;
+    content_type?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<ModerationQueueItem[]> => {
+    const response = await api.get<ModerationQueueItem[]>('/admin/moderation/queue', { params });
+    return response.data;
+  },
+
+  reviewQueueItem: async (
+    itemId: number,
+    action: 'approve' | 'reject',
+    notes?: string,
+    actionTaken?: string
+  ): Promise<{ message: string }> => {
+    const response = await api.post(`/admin/moderation/${itemId}/review`, null, {
+      params: { action, notes, action_taken: actionTaken },
+    });
+    return response.data;
+  },
+
+  // Admin: Content filters
+  getFilters: async (params: {
+    filter_type?: string;
+    is_active?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<ContentFilter[]> => {
+    const response = await api.get<ContentFilter[]>('/admin/content-filters', { params });
+    return response.data;
+  },
+
+  createFilter: async (data: ContentFilterCreate): Promise<ContentFilter> => {
+    const response = await api.post<ContentFilter>('/admin/content-filters', data);
+    return response.data;
+  },
+
+  deleteFilter: async (filterId: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/admin/content-filters/${filterId}`);
     return response.data;
   },
 };
@@ -621,6 +724,44 @@ export const reportApi = {
     const response = await api.get<Report[]>('/reports/mine');
     return response.data;
   },
+};
+
+// Ad Types
+export interface Ad {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  cta_text: string;
+  cta_url: string;
+  duration: number;
+  skip_after: number;
+  priority: number;
+}
+
+export interface AdImpressionRequest {
+  ad_network: string;
+  ad_unit: string;
+  impression_count: number;
+  click_count: number;
+  revenue: number;
+}
+
+// Ad API
+export const adApi = {
+  getActiveAds: async (limit: number = 5): Promise<Ad[]> => {
+    const response = await api.get<Ad[]>('/ads/active', {
+      params: { limit }
+    });
+    return response.data;
+  },
+
+  trackImpression: async (streamId: number, data: AdImpressionRequest): Promise<{ status: string }> => {
+    const response = await api.post<{ status: string }>('/ads/impression', data, {
+      params: { stream_id: streamId }
+    });
+    return response.data;
+  }
 };
 
 // Admin API
@@ -932,6 +1073,11 @@ export const scheduleApi = {
     const response = await api.post(`/streams/schedule/${scheduleId}/go-live`);
     return response.data;
   },
+
+  // Get calendar download URL for a scheduled stream
+  getCalendarUrl: (scheduleId: number): string => {
+    return `/api/v1/streams/schedule/${scheduleId}/calendar.ics`;
+  },
 };
 
 // Analytics Types
@@ -1080,87 +1226,7 @@ export interface ChatMute {
   username?: string | null;
 }
 
-// Moderation API (Phase 9)
-export const moderationApi = {
-  // Stream moderation settings
-  getStreamSettings: async (streamId: number): Promise<StreamModerationSettings> => {
-    const response = await api.get<StreamModerationSettings>(`/streams/${streamId}/moderation/settings`);
-    return response.data;
-  },
 
-  updateStreamSettings: async (
-    streamId: number,
-    settings: Partial<StreamModerationSettings>
-  ): Promise<StreamModerationSettings> => {
-    const response = await api.post<StreamModerationSettings>(
-      `/streams/${streamId}/moderation/settings`,
-      settings
-    );
-    return response.data;
-  },
-
-  // Mute/unmute users
-  muteUser: async (
-    streamId: number,
-    userId: number,
-    reason?: string,
-    duration?: number
-  ): Promise<{ message: string; muted_until: string | null }> => {
-    const response = await api.post(`/streams/${streamId}/mute/${userId}`, null, {
-      params: { reason, duration_seconds: duration },
-    });
-    return response.data;
-  },
-
-  unmuteUser: async (streamId: number, userId: number): Promise<{ message: string }> => {
-    const response = await api.delete(`/streams/${streamId}/mute/${userId}`);
-    return response.data;
-  },
-
-  // Admin: Moderation queue
-  getQueue: async (params: {
-    status?: string;
-    content_type?: string;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<ModerationQueueItem[]> => {
-    const response = await api.get<ModerationQueueItem[]>('/admin/moderation/queue', { params });
-    return response.data;
-  },
-
-  reviewQueueItem: async (
-    itemId: number,
-    action: 'approve' | 'reject',
-    notes?: string,
-    actionTaken?: string
-  ): Promise<{ message: string }> => {
-    const response = await api.post(`/admin/moderation/${itemId}/review`, null, {
-      params: { action, notes, action_taken: actionTaken },
-    });
-    return response.data;
-  },
-
-  // Admin: Content filters
-  getFilters: async (params: {
-    filter_type?: string;
-    is_active?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<ContentFilter[]> => {
-    const response = await api.get<ContentFilter[]>('/admin/content-filters', { params });
-    return response.data;
-  },
-
-  createFilter: async (data: ContentFilterCreate): Promise<ContentFilter> => {
-    const response = await api.post<ContentFilter>('/admin/content-filters', data);
-    return response.data;
-  },
-
-  deleteFilter: async (filterId: number): Promise<{ message: string }> => {
-    const response = await api.delete(`/admin/content-filters/${filterId}`);
-    return response.data;
-  },
-};
 
 // =========================================================================
 // Subscription Types (Phase 10)

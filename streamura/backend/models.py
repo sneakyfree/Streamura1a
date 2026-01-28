@@ -408,6 +408,41 @@ class ModerationAction(Base):
     report = relationship("Report")
 
 
+class Appeal(Base):
+    """Appeal against a moderation action"""
+    __tablename__ = "appeals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    moderation_action_id = Column(Integer, ForeignKey("moderation_actions.id"), nullable=False, index=True)
+    
+    # Appeal details
+    reason = Column(Text, nullable=False)
+    evidence = Column(Text, nullable=True)  # Additional evidence/context provided by user
+    
+    # Status: pending, under_review, approved, denied, escalated
+    status = Column(String(20), default="pending", index=True)
+    priority = Column(String(20), default="normal")  # low, normal, high, urgent
+    
+    # Review
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_notes = Column(Text, nullable=True)
+    outcome = Column(String(50), nullable=True)  # action_reversed, action_reduced, action_upheld, dismissed
+    
+    # If action was modified
+    new_action_type = Column(String(50), nullable=True)
+    new_duration = Column(Integer, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    moderation_action = relationship("ModerationAction", backref="appeals")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+
 class Recording(Base):
     """Recording model for stream recordings via LiveKit Egress"""
     __tablename__ = "recordings"
@@ -988,3 +1023,192 @@ class ContactSubmission(Base):
     # Admin notes
     admin_notes = Column(Text, nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+# =============================================================================
+# AGENT DECISION AUDIT TRAIL (Sprint 1 - Safety Layer)
+# =============================================================================
+
+class AgentDecision(Base):
+    """
+    Immutable audit trail for all autonomous agent decisions.
+    
+    Every action taken by an AI agent in the system is logged here
+    for transparency, compliance, and human-in-the-loop review.
+    """
+    __tablename__ = "agent_decisions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Agent identification
+    agent_name = Column(String(50), nullable=False, index=True)  # 'orchestrator', 'scout', 'verify', 'cluster', 'moderation', 'revenue', 'support'
+    agent_version = Column(String(20), nullable=True)
+    
+    # Action details
+    action_type = Column(String(100), nullable=False, index=True)  # e.g. 'terminate_stream', 'ban_user', 'payout_approval'
+    action_category = Column(String(50), nullable=True)  # 'moderation', 'monetization', 'discovery', 'support'
+    
+    # Target of the action
+    target_type = Column(String(50), nullable=True)  # 'user', 'stream', 'transaction', 'event'
+    target_id = Column(Integer, nullable=True, index=True)
+    
+    # Decision reasoning (explainability)
+    reasoning = Column(Text, nullable=True)  # Human-readable explanation
+    factors = Column(JSON, nullable=True)  # {factor_name: {weight: 0.3, score: 0.8, value: "..."}}
+    confidence = Column(Float, nullable=True)  # 0.0-1.0
+    alternatives_considered = Column(JSON, nullable=True)  # List of other options evaluated
+    
+    # Input data snapshot (for reproducibility)
+    input_snapshot = Column(JSON, nullable=True)  # Key inputs that led to this decision
+    
+    # HITL (Human-in-the-Loop) gates
+    requires_approval = Column(Boolean, default=False, index=True)
+    approval_category = Column(String(50), nullable=True)  # 'critical', 'high_value', 'user_impact'
+    approved = Column(Boolean, nullable=True)  # null = pending, True = approved, False = rejected
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    approval_notes = Column(Text, nullable=True)
+    
+    # Execution status
+    status = Column(String(20), default="pending", index=True)  # 'pending', 'approved', 'rejected', 'executed', 'failed', 'cancelled'
+    executed_at = Column(DateTime, nullable=True)
+    execution_result = Column(JSON, nullable=True)  # Result of the action if executed
+    error_message = Column(Text, nullable=True)  # If action failed
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Relationships
+    approver = relationship("User", foreign_keys=[approved_by])
+
+
+class HITLApprovalQueue(Base):
+    """
+    Queue for human-in-the-loop approvals.
+    High-priority agent decisions that require human review before execution.
+    """
+    __tablename__ = "hitl_approval_queue"
+
+    id = Column(Integer, primary_key=True, index=True)
+    decision_id = Column(Integer, ForeignKey("agent_decisions.id"), nullable=False, unique=True, index=True)
+    
+    # Queue management
+    priority = Column(String(20), default="normal", index=True)  # 'low', 'normal', 'high', 'urgent'
+    category = Column(String(50), nullable=True, index=True)  # 'account_action', 'payout', 'content_removal'
+    
+    # Assignment
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_at = Column(DateTime, nullable=True)
+    
+    # Timeout handling
+    timeout_at = Column(DateTime, nullable=True)  # Auto-escalate if not reviewed by this time
+    escalation_level = Column(Integer, default=0)
+    
+    # Status
+    status = Column(String(20), default="pending", index=True)  # 'pending', 'assigned', 'reviewing', 'completed', 'escalated', 'expired'
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    decision = relationship("AgentDecision")
+    assignee = relationship("User", foreign_keys=[assigned_to])
+
+
+class DataExportRequest(Base):
+    """GDPR data export request tracking (Sprint 2)."""
+    __tablename__ = "data_export_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    
+    # Export configuration
+    export_type = Column(String(20), default="full")  # 'full', 'profile', 'content', 'financial', 'messages'
+    include_private = Column(Boolean, default=True)
+    
+    # Status tracking
+    status = Column(String(20), default="pending", index=True)  # 'pending', 'processing', 'completed', 'failed', 'expired'
+    error_message = Column(Text, nullable=True)
+    
+    # File info
+    file_path = Column(String(512), nullable=True)
+    file_hash = Column(String(64), nullable=True)  # SHA-256 for integrity
+    file_size = Column(Integer, nullable=True)  # Bytes
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    
+    # Account deletion flag
+    is_deletion_export = Column(Boolean, default=False)
+    
+    # Relationships
+    user = relationship("User")
+
+
+class EmergencyContact(Base):
+    """Emergency contact and incident tracking (Sprint 2)."""
+    __tablename__ = "emergency_contacts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    
+    # Emergency type
+    emergency_type = Column(String(50), nullable=False)  # 'panic', 'medical', 'safety', 'legal', 'technical'
+    severity = Column(String(20), default="high")  # 'low', 'medium', 'high', 'critical'
+    
+    # Location (optional, with consent)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    location_accuracy = Column(Float, nullable=True)
+    location_timestamp = Column(DateTime, nullable=True)
+    location_consent = Column(Boolean, default=False)
+    
+    # Context
+    stream_id = Column(Integer, ForeignKey("streams.id"), nullable=True)
+    description = Column(Text, nullable=True)
+    
+    # Status
+    status = Column(String(20), default="open", index=True)  # 'open', 'acknowledged', 'escalated', 'resolved', 'false_alarm'
+    resolution_notes = Column(Text, nullable=True)
+    
+    # Routing
+    routed_to = Column(String(100), nullable=True)  # 'local_emergency', 'platform_safety', 'creator_support'
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    acknowledged_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User")
+    stream = relationship("Stream")
+
+
+class PanicButtonLog(Base):
+    """Log of panic button activations (Sprint 2)."""
+    __tablename__ = "panic_button_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    emergency_contact_id = Column(Integer, ForeignKey("emergency_contacts.id"), nullable=True)
+    
+    # Activation context
+    trigger_source = Column(String(50), nullable=False)  # 'mobile', 'web', 'keyboard_shortcut', 'voice'
+    stream_id = Column(Integer, ForeignKey("streams.id"), nullable=True)
+    
+    # Response
+    auto_actions_taken = Column(JSON, nullable=True)  # List of automated actions triggered
+    response_time_seconds = Column(Float, nullable=True)
+    
+    # Timestamps
+    activated_at = Column(DateTime, server_default=func.now(), index=True)
+    
+    # Relationships
+    user = relationship("User")
+    emergency = relationship("EmergencyContact")
+

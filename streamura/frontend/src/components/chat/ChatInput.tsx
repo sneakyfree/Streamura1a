@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, useRef, type KeyboardEvent } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -6,15 +6,38 @@ interface ChatInputProps {
   onSend: (message: string) => Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  onTyping?: (isTyping: boolean) => void;
 }
 
-export function ChatInput({ onSend, disabled = false, placeholder = 'Send a message...' }: ChatInputProps) {
+export function ChatInput({ onSend, disabled = false, placeholder = 'Send a message...', onTyping }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+
+    if (onTyping) {
+      onTyping(true);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping(false);
+      }, 2000);
+    }
+  };
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || isSending || disabled) return;
+
+    if (onTyping && typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      onTyping(false);
+    }
 
     try {
       setIsSending(true);
@@ -39,7 +62,7 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Send a mess
       <input
         type="text"
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled || isSending}

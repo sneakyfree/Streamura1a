@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, DollarSign, Send, AlertCircle } from 'lucide-react';
+import { X, DollarSign, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card';
 import { tipApi, type TipResponse } from '@/lib/api';
@@ -41,11 +43,22 @@ export function TipModal({ isOpen, onClose, streamId, creatorName, onSuccess }: 
         message: message || undefined,
       });
 
+      // Show success feedback
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        zIndex: 9999, // Ensure it's above the modal
+      });
+
+      toast.success(`Tip of $${effectiveAmount.toFixed(2)} sent!`);
+
       onSuccess?.(response);
       onClose();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process tip';
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,11 +99,10 @@ export function TipModal({ isOpen, onClose, streamId, creatorName, onSuccess }: 
                   setAmount(preset);
                   setCustomAmount('');
                 }}
-                className={`py-2 px-3 rounded-lg font-medium transition-colors ${
-                  amount === preset && !customAmount
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
+                className={`py-2 px-3 rounded-lg font-medium transition-colors ${amount === preset && !customAmount
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
               >
                 ${preset}
               </button>
@@ -139,6 +151,15 @@ export function TipModal({ isOpen, onClose, streamId, creatorName, onSuccess }: 
               <span className="text-slate-400">Creator receives (70%)</span>
               <span className="text-green-400">${(effectiveAmount * 0.7).toFixed(2)}</span>
             </div>
+            {/* Approximate currency conversion */}
+            <div className="flex justify-between text-xs mt-2 pt-2 border-t border-slate-600/50">
+              <span className="text-slate-500">≈ EUR</span>
+              <span className="text-slate-400">€{(effectiveAmount * 0.92).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs mt-0.5">
+              <span className="text-slate-500">≈ GBP</span>
+              <span className="text-slate-400">£{(effectiveAmount * 0.79).toFixed(2)}</span>
+            </div>
           </div>
 
           {error && (
@@ -159,7 +180,11 @@ export function TipModal({ isOpen, onClose, streamId, creatorName, onSuccess }: 
             disabled={!effectiveAmount || effectiveAmount < 1}
             className="flex-1 bg-green-600 hover:bg-green-700"
           >
-            <Send className="w-4 h-4 mr-2" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 mr-2" />
+            )}
             Send ${effectiveAmount.toFixed(2)}
           </Button>
         </CardFooter>

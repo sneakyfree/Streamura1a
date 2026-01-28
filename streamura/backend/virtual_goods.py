@@ -10,21 +10,56 @@ This module provides:
 - Purchase flow (deducts from balance)
 - Gifting between users
 - Tier-exclusive goods management
+- Rarity system with animated effects
+- Seasonal/limited-time items
+- Usage statistics and preview generation
 """
 
 import os
 import logging
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
+from enum import Enum
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
 logger = logging.getLogger(__name__)
 
 # Revenue split for virtual goods (same as tips/subscriptions)
-PLATFORM_FEE_PERCENT = Decimal("0.30")
-CREATOR_REVENUE_SHARE = Decimal("0.70")
+PLATFORM_FEE_PERCENT = Decimal("0.10")  # 10% platform fee (90/10 creator-first split)
+CREATOR_REVENUE_SHARE = Decimal("0.90")  # 90% to creator
+
+
+class GoodRarity(str, Enum):
+    """Rarity levels for virtual goods with price multipliers"""
+    COMMON = "common"       # 1x
+    UNCOMMON = "uncommon"   # 1.5x
+    RARE = "rare"           # 2x
+    EPIC = "epic"           # 3x
+    LEGENDARY = "legendary" # 5x
+
+
+class SeasonalTheme(str, Enum):
+    """Seasonal themes for limited-time goods"""
+    NONE = "none"
+    VALENTINE = "valentine"
+    SPRING = "spring"
+    SUMMER = "summer"
+    HALLOWEEN = "halloween"
+    THANKSGIVING = "thanksgiving"
+    WINTER = "winter"
+    NEW_YEAR = "new_year"
+
+
+# Rarity drop rates for random generation
+RARITY_WEIGHTS = {
+    GoodRarity.COMMON: 0.50,
+    GoodRarity.UNCOMMON: 0.30,
+    GoodRarity.RARE: 0.12,
+    GoodRarity.EPIC: 0.06,
+    GoodRarity.LEGENDARY: 0.02,
+}
 
 
 class VirtualGoodsError(Exception):

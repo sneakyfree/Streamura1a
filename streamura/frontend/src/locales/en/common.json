@@ -2,6 +2,7 @@
   "nav": {
     "home": "Home",
     "discover": "Discover",
+    "explore": "Explore",
     "goLive": "Go Live",
     "messages": "Messages",
     "communities": "Communities",
@@ -9,7 +10,8 @@
     "settings": "Settings",
     "logout": "Logout",
     "login": "Login",
-    "signup": "Sign Up"
+    "signup": "Sign Up",
+    "register": "Get Started"
   },
   "buttons": {
     "save": "Save",

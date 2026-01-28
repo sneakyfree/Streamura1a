@@ -2,15 +2,15 @@
 # Python 3.9+
 
 # Core Framework
-fastapi==0.104.1
-uvicorn==0.24.0
+fastapi
+uvicorn
 python-dotenv==1.0.0
 slowapi==0.1.9
 
 # Database
-psycopg2-binary==2.9.9
-sqlalchemy==2.0.23
-alembic==1.13.1
+psycopg2-binary
+sqlalchemy
+alembic
 
 # Async Support
 httpx==0.25.2
@@ -22,19 +22,21 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 
 # Streaming
-aiortc==1.6.0
-livekit==0.13.1
-livekit-api==0.7.1
-pydantic==2.5.2
-pydantic-settings==2.1.0
+# aiortc
+# livekit
+# livekit-api
+pydantic
+pydantic
+pydantic-settings
+email-validator
 
 # Real-time
 redis==5.0.1
 websockets==12.0
 
 # Event Detection
-scikit-learn==1.3.2
-numpy==1.26.2
+scikit-learn
+numpy
 geopy==2.4.1
 
 # Content Moderation (Phase 9)

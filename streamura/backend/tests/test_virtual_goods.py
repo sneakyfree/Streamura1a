@@ -46,12 +46,12 @@ class TestConstants:
     """Test module constants."""
 
     def test_platform_fee_percent(self):
-        """Test platform fee is reasonable."""
-        assert PLATFORM_FEE_PERCENT == Decimal("0.30")
+        """Test platform fee is 10% (90/10 creator-first split)."""
+        assert PLATFORM_FEE_PERCENT == Decimal("0.10")
 
     def test_creator_revenue_share(self):
-        """Test creator revenue share is reasonable."""
-        assert CREATOR_REVENUE_SHARE == Decimal("0.70")
+        """Test creator revenue share is 90%."""
+        assert CREATOR_REVENUE_SHARE == Decimal("0.90")
 
     def test_fee_plus_share_equals_one(self):
         """Test that fee and share add up to 100%."""
@@ -620,9 +620,9 @@ class TestPurchase:
             quantity=1
         )
 
-        # Check creator received revenue share (70%)
+        # Check creator received revenue share (90%)
         db.refresh(creator)
-        expected_amount = 10.00 * 0.70
+        expected_amount = 10.00 * 0.90
         assert creator.balance == pytest.approx(expected_amount, rel=0.01)
 
 

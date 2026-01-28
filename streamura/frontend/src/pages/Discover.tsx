@@ -14,6 +14,7 @@ import {
 import { discoveryApi, eventApi } from '@/lib/api';
 import { EventCard } from '@/components/events/EventCard';
 import { EventGrid } from '@/components/events/EventGrid';
+import { BreakingNews, TrendingInsights, EventClusterPanel } from '@/components/events/DiscoveryEnhancements';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { Event } from '@/types';
@@ -122,6 +123,14 @@ export function DiscoverPage() {
           </p>
         </div>
 
+        {/* Breaking News Banner */}
+        <BreakingNews className="mb-8" />
+
+        {/* AI Insights Ticker */}
+        <div className="mb-8">
+          <TrendingInsights />
+        </div>
+
         {/* Search Bar */}
         <div className="relative mb-8">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -190,11 +199,10 @@ export function DiscoverPage() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === category
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === category
+                ? 'bg-primary-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               {category}
               {category !== 'All' && categories && (
@@ -285,6 +293,13 @@ export function DiscoverPage() {
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* AI Event Clusters */}
+        {!searchQuery && (
+          <section className="mt-16 pt-8 border-t border-slate-800">
+            <EventClusterPanel />
           </section>
         )}
 

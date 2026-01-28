@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 # Configuration
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-STRIPE_PLATFORM_FEE_PERCENT = Decimal("0.30")  # 30% platform fee
-CREATOR_REVENUE_SHARE = Decimal("0.70")  # 70% to creator
+STRIPE_PLATFORM_FEE_PERCENT = Decimal("0.10")  # 10% platform fee (90/10 creator-first split)
+CREATOR_REVENUE_SHARE = Decimal("0.90")  # 90% to creator
 MINIMUM_TIP_AMOUNT = Decimal("1.00")
 MAXIMUM_TIP_AMOUNT = Decimal("500.00")
-MINIMUM_PAYOUT_AMOUNT = Decimal("5.00")
+MINIMUM_PAYOUT_AMOUNT = Decimal("1.00")  # Low minimum for micro-creators
 
 # Initialize Stripe
 if STRIPE_SECRET_KEY:
@@ -530,6 +530,9 @@ class StripeService:
             "event_type": "payment_intent.succeeded",
             "tip_amount": float(amount),
             "creator_amount": float(creator_amount),
+            "stream_id": stream_id,
+            "message": metadata.get("message", ""),
+            "from_user": "Anonymous", # We could fetch this if we stored user_id in metadata
         }
 
     async def _handle_payment_failed(self, payment_data: Dict, event_type: str = "payment_intent.payment_failed") -> Dict:

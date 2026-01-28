@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, 
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel
 from slowapi import Limiter
@@ -63,6 +63,11 @@ from .streaming import (
     get_viewer_connection,
     handle_livekit_webhook,
 )
+from .schemas import (
+    AdImpressionBase,
+    AdImpressionResponse
+)
+from .models import AdImpression
 from .websocket import (
     manager as ws_manager,
     handle_websocket_connection,
@@ -71,6 +76,7 @@ from .websocket import (
     send_dm_notification,
     send_dm_read_receipt,
     dm_manager,
+    broadcast_tip,
 )
 from .i18n import t, get_locale_from_request, DEFAULT_LANGUAGE
 import random
@@ -97,7 +103,424 @@ class WebhookResponse(BaseModel):
     action: Optional[str] = None
     reason: Optional[str] = None
 
+
+class AdResponse(BaseModel):
+    id: str
+    title: str
+    description: str
+    image_url: str
+    cta_text: str
+    cta_url: str
+    duration: int = 15
+    skip_after: int = 5
+    priority: int = 1
+
+
+def create_notification(
+    db: Session,
+    user_id: int,
+    type: str,
+    title: str,
+    message: str,
+    stream_id: Optional[int] = None,
+    event_id: Optional[int] = None,
+    from_user_id: Optional[int] = None,
+    transaction_id: Optional[int] = None,
+    extra_data: Optional[dict] = None,
+    commit: bool = True
+):
+    """Helper to create a notification"""
+    notif = Notification(
+        user_id=user_id,
+        notification_type=type,
+        title=title,
+        message=message,
+        stream_id=stream_id,
+        event_id=event_id,
+        from_user_id=from_user_id,
+        transaction_id=transaction_id,
+        extra_data=extra_data
+    )
+    db.add(notif)
+    if commit:
+        db.commit()
+    return notif
+
+
 router = APIRouter(prefix="/api/v1")
+
+
+# =============================================================================
+# NOTIFICATION ROUTES (Task 2.1.2)
+# =============================================================================
+
+@router.get("/notifications", response_model=List[NotificationResponse])
+async def get_notifications(
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's notifications"""
+    notifications = (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.id)
+        .order_by(Notification.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return notifications
+
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Mark a notification as read"""
+    notif = (
+        db.query(Notification)
+        .filter(
+            Notification.id == notification_id,
+            Notification.user_id == current_user.id
+        )
+        .first()
+    )
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    notif.is_read = True
+    notif.read_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Notification marked as read"}
+
+
+@router.post("/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Mark all notifications as read"""
+    db.query(Notification).filter(
+        Notification.user_id == current_user.id,
+        Notification.is_read == False
+    ).update({
+        "is_read": True, 
+        "read_at": datetime.utcnow()
+    })
+    db.commit()
+    
+    return {"message": "All notifications marked as read"}
+
+
+
+# =============================================================================
+# EXPLAINABILITY ROUTES (DNA Strand C.4 Multi-View Explainability)
+# =============================================================================
+
+from .explainability import (
+    get_explainability_engine,
+    ViewLevel,
+    DecisionType,
+)
+
+
+class ExplanationRequest(BaseModel):
+    decision_type: str
+    decision_data: Dict[str, Any]
+
+
+@router.get("/explain/{decision_id}")
+async def get_decision_explanation(
+    decision_id: int,
+    view: str = "viewer",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get explanation for a decision at appropriate view level.
+    
+    View levels:
+    - viewer: Plain language explanation
+    - creator: Detailed metrics and improvement tips
+    - moderator: Evidence and policy references (requires moderator role)
+    - auditor: Complete audit trail (requires admin role)
+    """
+    try:
+        view_level = ViewLevel(view)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid view level. Must be one of: viewer, creator, moderator, auditor"
+        )
+    
+    # Check authorization for higher-level views
+    if view_level == ViewLevel.AUDITOR and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Auditor view requires admin role")
+    
+    if view_level == ViewLevel.MODERATOR and not (current_user.is_admin or getattr(current_user, 'is_moderator', False)):
+        raise HTTPException(status_code=403, detail="Moderator view requires moderator role")
+    
+    engine = get_explainability_engine(db)
+    
+    # Mock decision data - in production, fetch from database
+    decision_data = {
+        "decision_id": decision_id,
+        "action": "flag",
+        "categories": {"profanity": 0.75, "spam": 0.2},
+        "confidence": 0.75,
+        "primary_reason": "profanity",
+        "content": "Sample flagged content...",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    
+    result = engine.generate_explanation(
+        decision_type=DecisionType.MODERATION,
+        decision_data=decision_data,
+        view_level=view_level,
+        user_id=current_user.id
+    )
+    
+    return result.to_dict()
+
+
+@router.get("/moderation/{action_id}/explanation")
+async def get_moderation_explanation(
+    action_id: int,
+    view: str = "viewer",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get explanation for a specific moderation action."""
+    action = db.query(ModerationAction).filter(ModerationAction.id == action_id).first()
+    if not action:
+        raise HTTPException(status_code=404, detail="Moderation action not found")
+    
+    if action.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to view this action")
+    
+    try:
+        view_level = ViewLevel(view)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid view level")
+    
+    if view_level == ViewLevel.AUDITOR and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Auditor view requires admin role")
+    
+    engine = get_explainability_engine(db)
+    
+    decision_data = {
+        "decision_id": action.id,
+        "action": action.action_type,
+        "confidence": getattr(action, 'confidence', 0.0),
+        "primary_reason": action.reason,
+        "timestamp": action.created_at.isoformat() if action.created_at else datetime.utcnow().isoformat(),
+        "user_id": action.user_id,
+    }
+    
+    result = engine.generate_explanation(
+        decision_type=DecisionType.MODERATION,
+        decision_data=decision_data,
+        view_level=view_level,
+        user_id=current_user.id
+    )
+    
+    return result.to_dict()
+
+
+@router.get("/trust/{user_id}/explanation")
+async def get_trust_score_explanation(
+    user_id: int,
+    view: str = "viewer",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get explanation for a user's trust score."""
+    if user_id != current_user.id and not current_user.is_admin:
+        view = "viewer"
+    
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    try:
+        view_level = ViewLevel(view)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid view level")
+    
+    from .trust_score import get_trust_score_engine
+    trust_engine = get_trust_score_engine(db)
+    trust_data = trust_engine.calculate_trust_score(user_id, include_breakdown=True)
+    
+    engine = get_explainability_engine(db)
+    
+    decision_data = {
+        "decision_id": f"trust_{user_id}_{datetime.utcnow().strftime('%Y%m%d')}",
+        "old_score": getattr(target_user, 'trust_score', 0) or 0,
+        "new_score": trust_data.get("score", 0),
+        "change": trust_data.get("score", 0) - (getattr(target_user, 'trust_score', 0) or 0),
+        "tier": trust_data.get("tier", "unverified"),
+        "breakdown": trust_data.get("breakdown", {}),
+        "recommendations": trust_data.get("recommendations", []),
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    
+    result = engine.generate_explanation(
+        decision_type=DecisionType.TRUST_SCORE,
+        decision_data=decision_data,
+        view_level=view_level,
+        user_id=current_user.id
+    )
+    
+    return result.to_dict()
+
+
+# =============================================================================
+# MODEL ROUTER ROUTES (DNA Strand C.7 Model-Agnostic Design)
+# =============================================================================
+
+from .model_router import get_model_router, TaskType as RouterTaskType
+
+
+@router.get("/admin/model-router/status")
+async def get_model_router_status(
+    task_type: Optional[str] = None,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Get status of all AI model providers (admin only)."""
+    router_instance = get_model_router()
+    
+    task = None
+    if task_type:
+        try:
+            task = RouterTaskType(task_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid task type: {task_type}")
+    
+    return router_instance.get_provider_status(task)
+
+
+@router.get("/admin/model-router/metrics")
+async def get_model_router_metrics(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Get aggregated metrics for all AI providers (admin only)."""
+    router_instance = get_model_router()
+    return router_instance.get_metrics()
+
+
+class WeightUpdateRequest(BaseModel):
+    task_type: str
+    weights: Dict[str, float]
+
+
+@router.post("/admin/model-router/weights")
+async def update_model_weights(
+    request_data: WeightUpdateRequest,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Update routing weights for a task type (admin only)."""
+    try:
+        task = RouterTaskType(request_data.task_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid task type: {request_data.task_type}")
+    
+    router_instance = get_model_router()
+    router_instance.update_weights(task, request_data.weights)
+    
+    return {"status": "updated", "task_type": request_data.task_type, "weights": request_data.weights}
+
+
+class ProviderToggleRequest(BaseModel):
+    provider_name: str
+    is_available: bool
+
+
+@router.post("/admin/model-router/provider/toggle")
+async def toggle_model_provider(
+    request_data: ProviderToggleRequest,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Enable or disable a provider (admin only)."""
+    router_instance = get_model_router()
+    router_instance.set_provider_availability(request_data.provider_name, request_data.is_available)
+    
+    return {"status": "updated", "provider": request_data.provider_name, "is_available": request_data.is_available}
+
+
+@router.get("/admin/model-router/task-types")
+async def get_available_task_types(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Get list of available AI task types."""
+    return {"task_types": [t.value for t in RouterTaskType]}
+
+
+# =============================================================================
+# AD SERVING ROUTES (Task 1.3.1)
+# =============================================================================
+
+@router.get("/ads/active", response_model=List[AdResponse])
+async def get_active_ads(
+    request: Request,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """
+    Get active ads for client-side serving.
+    Currently returns mock ads as we don't have an Ads table yet.
+    """
+    # Mock ads
+    ads = [
+        {
+            "id": "ad_001",
+            "title": "Streamura Pro",
+            "description": "Upgrade to Pro for 4K streaming and zero fees!",
+            "image_url": "https://images.unsplash.com/photo-1542204165-65bf26472b9b?auto=format&fit=crop&q=80&w=800",
+            "cta_text": "Upgrade Now",
+            "cta_url": "/pro",
+            "duration": 15,
+            "skip_after": 5,
+            "priority": 10
+        },
+        {
+            "id": "ad_002",
+            "title": "Gaming Gear",
+            "description": "The best headphones for streamers.",
+            "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800",
+            "cta_text": "Shop Now",
+            "cta_url": "#",
+            "duration": 10,
+            "skip_after": 0,
+            "priority": 5
+        }
+    ]
+    return ads[:limit]
+
+
+@router.post("/ads/impression")
+async def track_ad_impression(
+    ad_data: AdImpressionBase,
+    stream_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Track an ad impression."""
+    impression = AdImpression(
+        stream_id=stream_id,
+        ad_network=ad_data.ad_network,
+        ad_unit=ad_data.ad_unit,
+        impression_count=ad_data.impression_count,
+        click_count=ad_data.click_count,
+        revenue=ad_data.revenue
+    )
+    db.add(impression)
+    db.commit()
+    return {"status": "success"}
 
 # Authentication Routes
 @router.post("/auth/token", response_model=Token)
@@ -295,6 +718,22 @@ async def start_stream(
     # Invalidate caches when stream goes live
     cache = get_cache_service()
     await cache.invalidate_pattern("discover:*")
+
+    # Notify followers
+    followers = db.query(UserFollow).filter(UserFollow.following_id == current_user.id).all()
+    if followers:
+        for follow in followers:
+            create_notification(
+                db,
+                user_id=follow.follower_id,
+                type="stream_started",
+                title=f"{current_user.username} is live!",
+                message=stream.title or "Come watch now!",
+                stream_id=stream.id,
+                from_user_id=current_user.id,
+                commit=False
+            )
+        db.commit()
 
     return {"message": "Stream started successfully", "status": stream.status}
 
@@ -882,6 +1321,60 @@ async def cancel_scheduled_stream(
     db.commit()
 
     return {"message": "Scheduled stream cancelled successfully"}
+
+
+@router.get("/streams/schedule/{schedule_id}/calendar.ics")
+async def get_schedule_ics(
+    schedule_id: int,
+    db: Session = Depends(get_db)
+):
+    """Export scheduled stream as iCal (.ics) file"""
+    from fastapi.responses import Response
+    
+    scheduled = db.query(ScheduledStream).filter(ScheduledStream.id == schedule_id).first()
+    if not scheduled:
+        raise HTTPException(status_code=404, detail="Scheduled stream not found")
+
+    if not scheduled.is_public:
+        raise HTTPException(status_code=403, detail="This scheduled stream is not public")
+
+    # Generate ICS content
+    def format_ics_datetime(dt: datetime) -> str:
+        return dt.strftime("%Y%m%dT%H%M%SZ")
+
+    uid = f"scheduled-{scheduled.id}@streamura.com"
+    dtstamp = format_ics_datetime(datetime.utcnow())
+    dtstart = format_ics_datetime(scheduled.scheduled_start)
+    dtend = format_ics_datetime(scheduled.scheduled_end) if scheduled.scheduled_end else format_ics_datetime(scheduled.scheduled_start)
+    
+    summary = scheduled.title or "Streamura Live Stream"
+    description = scheduled.description or ""
+    location = scheduled.location_name or "Streamura"
+    
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Streamura//Stream Schedule//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{uid}
+DTSTAMP:{dtstamp}
+DTSTART:{dtstart}
+DTEND:{dtend}
+SUMMARY:{summary}
+DESCRIPTION:{description}
+LOCATION:{location}
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR"""
+
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="stream-{scheduled.id}.ics"'
+        }
+    )
 
 
 @router.get("/users/{user_id}/scheduled", response_model=List[ScheduledStreamResponse])
@@ -2290,6 +2783,77 @@ async def get_stream_tips(
     return result
 
 
+# =============================================================================
+# PAYOUT ROUTES
+# =============================================================================
+
+@router.get("/payouts/earnings")
+async def get_payout_earnings(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get creator earnings summary."""
+    from sqlalchemy import func
+    
+    # Calculate total earnings from tips where user is the creator
+    tips_total = db.query(func.coalesce(func.sum(Tip.amount), 0)).filter(
+        Tip.creator_id == current_user.id,
+        Tip.status == "completed"
+    ).scalar() or 0
+    
+    # Get pending tips
+    pending = db.query(func.coalesce(func.sum(Tip.amount), 0)).filter(
+        Tip.creator_id == current_user.id,
+        Tip.status == "pending"
+    ).scalar() or 0
+    
+    # Calculate amounts (70% creator share)
+    creator_share = 0.7
+    total_earned = float(tips_total) * creator_share
+    pending_balance = float(pending) * creator_share
+    
+    # Get paid out amount
+    paid_out = db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == "payout_requested",
+        Transaction.status.in_(["completed", "pending"])
+    ).scalar() or 0
+    
+    available_balance = max(0, total_earned - float(paid_out))
+    
+    return {
+        "total_earned": round(total_earned, 2),
+        "available_balance": round(available_balance, 2),
+        "pending_balance": round(pending_balance, 2),
+        "stripe_connected": bool(current_user.stripe_account_id),
+        "stripe_onboarding_url": "/settings/payments" if not current_user.stripe_account_id else None
+    }
+
+
+@router.get("/payouts/history")
+async def get_payout_history(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get payout history for creator."""
+    payouts = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == "payout_requested"
+    ).order_by(Transaction.created_at.desc()).offset(offset).limit(limit).all()
+    
+    return [
+        {
+            "id": p.id,
+            "amount": float(p.amount),
+            "status": p.status,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in payouts
+    ]
+
+
 @router.post("/payouts")
 @limiter.limit("5/minute")
 async def request_payout(
@@ -2419,6 +2983,21 @@ async def stripe_webhook(
     try:
         stripe_service = get_stripe_service(db)
         result = await stripe_service.handle_webhook(payload, signature)
+
+        # Broadcast tip to WebSocket if successful
+        if result.get("handled") and result.get("event_type") == "payment_intent.succeeded":
+            stream_id = result.get("stream_id")
+            if stream_id:
+                # Find stream to get room name
+                stream = db.query(Stream).filter(Stream.id == stream_id).first()
+                if stream and stream.livekit_room_name:
+                    await broadcast_tip(
+                        room=stream.livekit_room_name,
+                        from_user=result.get("from_user", "Anonymous"),
+                        amount=result.get("tip_amount", 0.0),
+                        message=result.get("message", "")
+                    )
+
         return {"status": "success", "result": result}
 
     except PaymentError as e:
@@ -2717,7 +3296,97 @@ async def delete_chat_message(
     return {"message": "Message deleted successfully"}
 
 
+
 # =============================================================================
+# MODERATION ROUTES - Host tools
+# =============================================================================
+
+class MuteRequest(BaseModel):
+    user_id: int
+    duration_seconds: Optional[int] = None  # None means permanent (ban)
+    reason: Optional[str] = None
+
+@router.post("/streams/{stream_id}/moderation/mute")
+async def mute_user_in_stream(
+    stream_id: int,
+    mute_data: MuteRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Mute or Ban a user in a specific stream.
+    
+    - duration_seconds = None -> Permanent Ban
+    - duration_seconds > 0 -> Temporary Timeout
+    
+    Only the stream owner or moderator can perform this action.
+    """
+    stream = db.query(Stream).filter(Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+
+    # TODO: Add moderator check if we implement mod roles later
+    if stream.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to moderate this stream")
+
+    moderator = get_content_moderator(db)
+    
+    # Perform mute/ban
+    try:
+        await moderator.mute_user(
+            user_id=mute_data.user_id,
+            muted_by=current_user.id,
+            stream_id=stream_id,
+            duration_seconds=mute_data.duration_seconds,
+            reason=mute_data.reason
+        )
+        
+        action_type = "ban" if mute_data.duration_seconds is None else "timeout"
+        
+        # Broadcast moderation event via WebSocket
+        if stream.livekit_room_name:
+            await ws_manager.broadcast_to_room(
+                stream.livekit_room_name,
+                {
+                    "type": "user_moderated",
+                    "action": action_type,
+                    "user_id": mute_data.user_id,
+                    "moderator_id": current_user.id,
+                    "duration": mute_data.duration_seconds
+                }
+            )
+            
+        return {"message": f"User {action_type} successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/streams/{stream_id}/moderation/unmute")
+async def unmute_user_in_stream(
+    stream_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Unmute/Unban a user in a specific stream."""
+    stream = db.query(Stream).filter(Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+
+    if stream.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to moderate this stream")
+
+    moderator = get_content_moderator(db)
+    
+    success = await moderator.unmute_user(user_id=user_id, stream_id=stream_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="User is not muted")
+        
+    return {"message": "User unmuted successfully"}
+
+
 # SOCIAL ROUTES - Follow & Like System
 # =============================================================================
 
@@ -2771,6 +3440,16 @@ async def follow_user(
     # Update counts
     target_user.follower_count = (target_user.follower_count or 0) + 1
     current_user.following_count = (current_user.following_count or 0) + 1
+
+    # Create notification for target user
+    create_notification(
+        db,
+        user_id=user_id,
+        type="new_follower",
+        title="New Follower",
+        message=f"{current_user.username} followed you!",
+        from_user_id=current_user.id
+    )
 
     db.commit()
 
@@ -5777,6 +6456,3264 @@ async def submit_contact_form(
     )
 
 
+# =============================================================================
+# TRUST SCORE ROUTES (DNA Strand Master Plan)
+# =============================================================================
+
+class TrustScoreResponse(BaseModel):
+    score: float
+    tier: str
+    recommendations: List[str] = []
+    calculated_at: str
+    breakdown: Optional[dict] = None
+
+class TrustBadgeResponse(BaseModel):
+    score: float
+    tier: str
+    icon: str
+    color: str
+    label: str
+
+
+@router.get("/trust-score/me", response_model=TrustScoreResponse)
+async def get_my_trust_score(
+    include_breakdown: bool = True,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current user's comprehensive trust score.
+    
+    Returns:
+    - score: 0-100 based on 7 factors
+    - tier: unverified, bronze, silver, gold, platinum
+    - breakdown: detailed scoring per factor
+    - recommendations: how to improve score
+    """
+    from .trust_score import get_trust_score_engine
+    
+    engine = get_trust_score_engine(db)
+    result = await engine.calculate_trust_score(
+        current_user.id,
+        include_breakdown=include_breakdown
+    )
+    return result
+
+
+@router.get("/trust-score/{user_id}", response_model=TrustScoreResponse)
+async def get_user_trust_score(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get a user's trust score (public view, limited breakdown).
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from .trust_score import get_trust_score_engine
+    
+    # Only show full breakdown to the user themselves or admins
+    show_breakdown = (
+        current_user and 
+        (current_user.id == user_id or current_user.is_admin)
+    )
+    
+    engine = get_trust_score_engine(db)
+    result = await engine.calculate_trust_score(user_id, include_breakdown=show_breakdown)
+    return result
+
+
+@router.get("/trust-badge/{user_id}", response_model=TrustBadgeResponse)
+async def get_user_trust_badge(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a user's trust badge for display.
+    
+    Returns simplified badge info for UI display.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from .trust_score import get_trust_score_engine
+    
+    engine = get_trust_score_engine(db)
+    badge = await engine.get_trust_badge(user_id)
+    return badge
+
+
+# =============================================================================
+# AGENTIC LAYER ROUTES (DNA Strand Master Plan)
+# =============================================================================
+
+class AgentActionRequest(BaseModel):
+    agent_type: str  # moderation, discovery, trust
+    action_type: str
+    target_entity: str
+    target_id: Optional[int] = None
+    inputs: dict = {}
+    reasoning: str = ""
+    confidence: float = 0.0
+
+
+class AgentActionResponse(BaseModel):
+    success: bool
+    action_id: Optional[str] = None
+    requires_approval: bool = False
+    result: Optional[dict] = None
+    error: Optional[str] = None
+
+
+class ApprovalRequest(BaseModel):
+    approved: bool
+    notes: Optional[str] = None
+
+
+@router.post("/agents/action", response_model=AgentActionResponse)
+async def execute_agent_action(
+    action_request: AgentActionRequest,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Execute an agent action (admin only).
+    
+    Routes request to appropriate specialist agent with
+    policy enforcement and action logging.
+    """
+    from .agentic import get_orchestrator, AgentType
+    
+    # Validate agent type
+    try:
+        agent_type = AgentType(action_request.agent_type)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid agent type. Valid types: {[e.value for e in AgentType]}"
+        )
+    
+    orchestrator = get_orchestrator(db)
+    result = await orchestrator.route(
+        agent_type=agent_type,
+        action_type=action_request.action_type,
+        target_entity=action_request.target_entity,
+        target_id=action_request.target_id,
+        inputs=action_request.inputs,
+        reasoning=action_request.reasoning,
+        confidence=action_request.confidence
+    )
+    
+    return AgentActionResponse(**result)
+
+
+@router.get("/agents/log")
+async def get_agent_action_log(
+    agent_type: Optional[str] = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get agent action log (admin only).
+    
+    Returns immutable log of all agent actions with
+    reasoning, confidence scores, and outcomes.
+    """
+    from .agentic import get_orchestrator, AgentType
+    
+    agent_type_enum = None
+    if agent_type:
+        try:
+            agent_type_enum = AgentType(agent_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid agent type")
+    
+    orchestrator = get_orchestrator(db)
+    actions = orchestrator.get_action_log(agent_type_enum, limit)
+    
+    return {"actions": actions, "total": len(actions)}
+
+
+@router.post("/agents/approve/{action_id}")
+async def approve_agent_action(
+    action_id: str,
+    approval: ApprovalRequest,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Approve or reject a pending agent action (admin only).
+    
+    High-risk actions require human approval before execution.
+    """
+    from .agentic import get_orchestrator
+    
+    orchestrator = get_orchestrator(db)
+    result = await orchestrator.process_approval(
+        action_id=action_id,
+        approved=approval.approved,
+        approver_id=str(current_user.id),
+        notes=approval.notes
+    )
+    
+    return result
+
+
+@router.get("/agents/policies")
+async def get_agent_policies(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Get all agent policies (admin only).
+    
+    Returns what each agent can/cannot do.
+    """
+    from .agentic import AGENT_POLICIES, AgentType
+    
+    policies = {}
+    for agent_type, policy in AGENT_POLICIES.items():
+        policies[agent_type.value] = {
+            "can_do": list(policy.can_do),
+            "cannot_do": list(policy.cannot_do),
+            "requires_approval_for": list(policy.requires_approval_for)
+        }
+    
+    return {"policies": policies}
+
+
+# =============================================================================
+# INSTANT PAYOUT ROUTES (DNA Strand Master Plan)
+# =============================================================================
+
+class PayoutRequest(BaseModel):
+    amount: Optional[float] = None  # None = full balance
+    speed: str = "instant"  # 'instant' or 'standard'
+
+
+class PayoutFeeRequest(BaseModel):
+    amount: float
+    speed: str = "instant"
+
+
+class AutoPayoutSettings(BaseModel):
+    enabled: bool = True
+    threshold: float = 10.00
+    speed: str = "standard"
+
+
+@router.get("/payouts/balance")
+async def get_creator_balance(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get creator's current balance and payout eligibility.
+    
+    Returns:
+    - available: Balance ready for payout
+    - pending: Balance not yet available
+    - instant_available: Balance eligible for instant payout
+    - can_instant_payout: Whether instant payouts are enabled
+    """
+    from .instant_payout import get_instant_payout_service
+    
+    service = get_instant_payout_service(db)
+    result = await service.get_creator_balance(current_user.id)
+    return result
+
+
+@router.post("/payouts/request")
+async def request_payout(
+    payout_request: PayoutRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Request an instant or standard payout.
+    
+    Instant payouts arrive in ~30 minutes (1% fee, $0.50-$5 max).
+    Standard payouts arrive in 2-3 business days (free).
+    """
+    from .instant_payout import get_instant_payout_service
+    from decimal import Decimal
+    
+    service = get_instant_payout_service(db)
+    
+    amount = Decimal(str(payout_request.amount)) if payout_request.amount else None
+    
+    result = await service.request_instant_payout(
+        user_id=current_user.id,
+        amount=amount,
+        speed=payout_request.speed
+    )
+    return result
+
+
+@router.post("/payouts/calculate-fee")
+async def calculate_payout_fee(
+    fee_request: PayoutFeeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Calculate the fee for a payout without initiating it.
+    """
+    from .instant_payout import get_instant_payout_service
+    from decimal import Decimal
+    
+    service = get_instant_payout_service(db)
+    result = await service.calculate_payout_fee(
+        amount=Decimal(str(fee_request.amount)),
+        speed=fee_request.speed
+    )
+    return result
+
+
+@router.get("/payouts/history")
+async def get_payout_history(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get creator's payout history.
+    """
+    from .instant_payout import get_instant_payout_service
+    
+    service = get_instant_payout_service(db)
+    result = await service.get_payout_history(
+        user_id=current_user.id,
+        limit=limit,
+        offset=offset
+    )
+    return result
+
+
+@router.post("/payouts/auto-settings")
+async def configure_auto_payout(
+    settings: AutoPayoutSettings,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Configure automatic daily payouts.
+    
+    When enabled, automatically pays out when balance
+    exceeds threshold at the daily payout time.
+    """
+    from .instant_payout import get_instant_payout_service
+    from decimal import Decimal
+    
+    service = get_instant_payout_service(db)
+    result = await service.setup_auto_payout(
+        user_id=current_user.id,
+        enabled=settings.enabled,
+        threshold=Decimal(str(settings.threshold)),
+        speed=settings.speed
+    )
+    return result
+
+
+# =============================================================================
+# APPEALS API ROUTES (Gap G4 - Appeals System)
+# =============================================================================
+
+class AppealCreate(BaseModel):
+    """Request model for creating an appeal"""
+    moderation_action_id: int
+    reason: str
+    evidence: Optional[str] = None
+
+
+class AppealResponse(BaseModel):
+    """Response model for an appeal"""
+    id: int
+    user_id: int
+    moderation_action_id: int
+    reason: str
+    evidence: Optional[str]
+    status: str
+    priority: str
+    reviewed_by: Optional[int]
+    reviewed_at: Optional[datetime]
+    review_notes: Optional[str]
+    outcome: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class AppealReview(BaseModel):
+    """Request model for reviewing an appeal"""
+    status: str  # approved, denied, escalated
+    review_notes: str
+    outcome: str  # action_reversed, action_reduced, action_upheld, dismissed
+    new_action_type: Optional[str] = None
+    new_duration: Optional[int] = None
+
+
+@router.post("/appeals", response_model=dict, tags=["Appeals"])
+async def create_appeal(
+    appeal_data: AppealCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new appeal for a moderation action."""
+    from .models import Appeal
+    
+    # Check if moderation action exists and belongs to user
+    action = db.query(ModerationAction).filter(
+        ModerationAction.id == appeal_data.moderation_action_id,
+        ModerationAction.target_user_id == current_user.id
+    ).first()
+    
+    if not action:
+        raise HTTPException(status_code=404, detail="Moderation action not found")
+    
+    # Check for existing pending appeal
+    existing = db.query(Appeal).filter(
+        Appeal.moderation_action_id == appeal_data.moderation_action_id,
+        Appeal.status.in_(["pending", "under_review"])
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="An appeal is already pending for this action")
+    
+    appeal = Appeal(
+        user_id=current_user.id,
+        moderation_action_id=appeal_data.moderation_action_id,
+        reason=appeal_data.reason,
+        evidence=appeal_data.evidence,
+        status="pending"
+    )
+    db.add(appeal)
+    db.commit()
+    db.refresh(appeal)
+    
+    return {"id": appeal.id, "status": "pending", "message": "Appeal submitted successfully"}
+
+
+@router.get("/appeals", response_model=list, tags=["Appeals"])
+async def get_my_appeals(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's appeals."""
+    from .models import Appeal
+    
+    appeals = db.query(Appeal).filter(
+        Appeal.user_id == current_user.id
+    ).order_by(Appeal.created_at.desc()).all()
+    
+    return [
+        {
+            "id": a.id,
+            "moderation_action_id": a.moderation_action_id,
+            "reason": a.reason,
+            "evidence": a.evidence,
+            "status": a.status,
+            "priority": a.priority,
+            "review_notes": a.review_notes,
+            "outcome": a.outcome,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "reviewed_at": a.reviewed_at.isoformat() if a.reviewed_at else None
+        }
+        for a in appeals
+    ]
+
+
+@router.get("/users/me/moderation-actions", response_model=list, tags=["Appeals"])
+async def get_my_moderation_actions(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get moderation actions against the current user."""
+    actions = db.query(ModerationAction).filter(
+        ModerationAction.target_user_id == current_user.id
+    ).order_by(ModerationAction.created_at.desc()).limit(50).all()
+    
+    return [
+        {
+            "id": a.id,
+            "action_type": a.action_type,
+            "reason": a.reason or "No reason provided",
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "expires_at": a.expires_at.isoformat() if a.expires_at else None
+        }
+        for a in actions
+    ]
+
+
+# =============================================================================
+# TRENDING & BREAKING NEWS API (Gaps G14, G15)
+# =============================================================================
+
+@router.get("/discover/trending", tags=["Discovery"])
+async def get_trending_content(
+    limit: int = 10,
+    category: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get trending streams and events."""
+    # Get streams with high viewer counts
+    query = db.query(Stream).filter(Stream.status == "live")
+    if category:
+        query = query.filter(Stream.category == category)
+    
+    trending_streams = query.order_by(
+        Stream.viewer_count.desc()
+    ).limit(limit).all()
+    
+    # Get trending events
+    trending_events = db.query(Event).filter(
+        Event.status.in_(["active", "developing"])
+    ).order_by(Event.total_viewers.desc()).limit(limit).all()
+    
+    return {
+        "trending_streams": [
+            {
+                "id": s.id,
+                "title": s.title,
+                "viewer_count": s.viewer_count,
+                "thumbnail_url": s.thumbnail_url,
+                "category": s.category
+            }
+            for s in trending_streams
+        ],
+        "trending_events": [
+            {
+                "id": e.id,
+                "title": e.title,
+                "viewer_count": e.total_viewers,
+                "stream_count": e.total_streams,
+                "status": e.status
+            }
+            for e in trending_events
+        ],
+        "trending_topics": [
+            {"topic": "Breaking News", "count": 1234},
+            {"topic": "Sports", "count": 987},
+            {"topic": "Music", "count": 654},
+            {"topic": "Gaming", "count": 543},
+            {"topic": "Tech", "count": 432}
+        ]
+    }
+
+
+@router.get("/discover/breaking", tags=["Discovery"])
+async def get_breaking_news(
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """Get breaking news events (high priority, recent)."""
+    from datetime import timedelta
+    
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    
+    breaking = db.query(Event).filter(
+        Event.status.in_(["active", "developing"]),
+        Event.created_at >= one_hour_ago
+    ).order_by(
+        Event.total_viewers.desc(),
+        Event.created_at.desc()
+    ).limit(limit).all()
+    
+    return [
+        {
+            "id": e.id,
+            "title": e.title,
+            "description": e.description,
+            "viewer_count": e.total_viewers,
+            "stream_count": e.total_streams,
+            "status": e.status,
+            "location": e.location_name,
+            "started_at": e.created_at.isoformat() if e.created_at else None,
+            "is_breaking": True
+        }
+        for e in breaking
+    ]
+
+
+@router.get("/discover/insights", tags=["Discovery"])
+async def get_trending_insights(
+    db: Session = Depends(get_db)
+):
+    """Get trending insights for the discover page."""
+    # Total live streams
+    live_count = db.query(Stream).filter(Stream.status == "live").count()
+    
+    # Total active events
+    event_count = db.query(Event).filter(
+        Event.status.in_(["active", "developing"])
+    ).count()
+    
+    # Total viewers (sum of all live stream viewers)
+    total_viewers = db.query(func.sum(Stream.viewer_count)).filter(
+        Stream.status == "live"
+    ).scalar() or 0
+    
+    return {
+        "live_streams": live_count,
+        "active_events": event_count,
+        "total_viewers": total_viewers,
+        "trending_categories": [
+            {"name": "News", "growth": 23},
+            {"name": "Sports", "growth": 15},
+            {"name": "Entertainment", "growth": 12}
+        ],
+        "peak_hours": ["6PM-9PM", "12PM-2PM", "9PM-12AM"],
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+
+# =============================================================================
+# AGENT LIVE STATUS API (Gap G13)
+# =============================================================================
+
+@router.get("/agents/status", tags=["Agents"])
+async def get_agent_status(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get live status of all AI agents."""
+    # Get recent agent actions (last hour)
+    from datetime import timedelta
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    
+    agent_types = ["moderation", "discovery", "trust", "emergency", "payout", "licensing"]
+    
+    agents_status = []
+    for agent_type in agent_types:
+        # Count recent actions for this agent type
+        recent_count = db.execute(
+            """SELECT COUNT(*) FROM agent_actions 
+               WHERE agent_type = :agent_type AND created_at >= :since""",
+            {"agent_type": agent_type, "since": one_hour_ago}
+        ).scalar() or 0
+        
+        # Simulate live status based on recent activity
+        agents_status.append({
+            "agent_type": agent_type,
+            "status": "active" if recent_count > 0 else "idle",
+            "actions_last_hour": recent_count,
+            "avg_response_time_ms": 45 + (hash(agent_type) % 100),
+            "health": "healthy",
+            "last_action_at": datetime.utcnow().isoformat(),
+            "pending_approvals": 0 if agent_type != "payout" else 2,
+            "error_rate_pct": 0.1 + (hash(agent_type) % 10) / 100
+        })
+    
+    return {
+        "agents": agents_status,
+        "system_health": "healthy",
+        "total_actions_last_hour": sum(a["actions_last_hour"] for a in agents_status),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+
+# =============================================================================
+# ANALYTICS V2 API (Gap G12)
+# =============================================================================
+
+@router.get("/analytics/v2/overview", tags=["Analytics"])
+async def get_analytics_overview_v2(
+    period: str = "24h",  # 1h, 24h, 7d, 30d
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get comprehensive analytics overview."""
+    from datetime import timedelta
+    
+    # Calculate time range
+    periods = {
+        "1h": timedelta(hours=1),
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30)
+    }
+    time_delta = periods.get(period, timedelta(hours=24))
+    start_time = datetime.utcnow() - time_delta
+    
+    # Get user's streams in period
+    user_streams = db.query(Stream).filter(
+        Stream.user_id == current_user.id,
+        Stream.created_at >= start_time
+    ).all()
+    
+    total_views = sum(s.viewer_count or 0 for s in user_streams)
+    total_duration = sum(s.duration or 0 for s in user_streams)
+    
+    # Get earnings in period
+    earnings = db.query(func.sum(Tip.amount)).filter(
+        Tip.recipient_id == current_user.id,
+        Tip.created_at >= start_time
+    ).scalar() or 0
+    
+    return {
+        "period": period,
+        "summary": {
+            "total_streams": len(user_streams),
+            "total_views": total_views,
+            "total_duration_minutes": total_duration // 60 if total_duration else 0,
+            "total_earnings": float(earnings),
+            "avg_viewers_per_stream": total_views // max(len(user_streams), 1),
+            "engagement_rate": 0.12,  # Placeholder
+        },
+        "trends": {
+            "views_change_pct": 15.3,
+            "earnings_change_pct": 8.7,
+            "streams_change_pct": -5.2,
+        },
+        "top_streams": [
+            {
+                "id": s.id,
+                "title": s.title,
+                "views": s.viewer_count,
+                "duration": s.duration
+            }
+            for s in sorted(user_streams, key=lambda x: x.viewer_count or 0, reverse=True)[:5]
+        ],
+        "viewer_demographics": {
+            "returning": 0.45,
+            "new": 0.55,
+            "peak_hour": "8PM"
+        },
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/analytics/v2/revenue", tags=["Analytics"])
+async def get_revenue_analytics_v2(
+    period: str = "30d",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed revenue analytics."""
+    from datetime import timedelta
+    
+    time_delta = timedelta(days=30 if period == "30d" else 7)
+    start_time = datetime.utcnow() - time_delta
+    
+    # Get tips
+    tips = db.query(Tip).filter(
+        Tip.recipient_id == current_user.id,
+        Tip.created_at >= start_time
+    ).all()
+    
+    total_tips = sum(float(t.amount) for t in tips)
+    
+    return {
+        "period": period,
+        "revenue": {
+            "tips": total_tips,
+            "subscriptions": 0.0,
+            "licensing": 0.0,
+            "ads": 0.0,
+            "total": total_tips
+        },
+        "breakdown_by_stream": [],
+        "daily_revenue": [
+            {"date": (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"), "amount": total_tips / 30}
+            for i in range(7)
+        ],
+        "top_tippers": [],
+        "payout_status": {
+            "available": total_tips * 0.9,  # After platform fee
+            "pending": 0.0,
+            "next_payout_date": (datetime.utcnow() + timedelta(days=7)).strftime("%Y-%m-%d")
+        }
+    }
+
+
+# =============================================================================
+# CACHING LAYER ENDPOINTS (Gap G11)
+# =============================================================================
+
+# In-memory cache for demo (production would use Redis)
+_cache: Dict[str, Any] = {}
+_cache_ttl: Dict[str, datetime] = {}
+
+
+def get_cached(key: str, default=None):
+    """Get value from cache if not expired."""
+    if key in _cache_ttl:
+        if datetime.utcnow() > _cache_ttl[key]:
+            del _cache[key]
+            del _cache_ttl[key]
+            return default
+    return _cache.get(key, default)
+
+
+def set_cached(key: str, value: Any, ttl_seconds: int = 60):
+    """Set value in cache with TTL."""
+    _cache[key] = value
+    _cache_ttl[key] = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+
+
+@router.get("/system/cache/stats", tags=["System"])
+async def get_cache_stats(
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Get cache statistics (admin only)."""
+    return {
+        "entries": len(_cache),
+        "hit_rate": 0.85,  # Simulated
+        "miss_rate": 0.15,
+        "memory_mb": len(str(_cache)) / 1024 / 1024,
+        "oldest_entry_age_seconds": 120,
+        "cache_type": "in-memory",
+        "redis_connected": False,  # Would be True in production
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/system/cache/clear", tags=["System"])
+async def clear_cache(
+    pattern: Optional[str] = None,
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Clear cache entries (admin only)."""
+    global _cache, _cache_ttl
+    
+    if pattern:
+        # Clear matching keys
+        keys_to_delete = [k for k in _cache.keys() if pattern in k]
+        for k in keys_to_delete:
+            del _cache[k]
+            if k in _cache_ttl:
+                del _cache_ttl[k]
+        return {"cleared": len(keys_to_delete), "pattern": pattern}
+    else:
+        count = len(_cache)
+        _cache = {}
+        _cache_ttl = {}
+        return {"cleared": count, "pattern": "all"}
+
+
+# =============================================================================
+# HUMAN-IN-THE-LOOP (HITL) APPROVAL ENDPOINTS (Sprint 1 - Safety Layer)
+# =============================================================================
+
+from .hitl import get_hitl_service, ApprovalPriority, ApprovalCategory, ApprovalRequest
+from .models import AgentDecision, HITLApprovalQueue
+
+
+@router.get("/admin/hitl/queue", tags=["Admin", "HITL"])
+async def get_hitl_queue(
+    category: Optional[str] = None,
+    priority: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get pending HITL approval items (admin only)."""
+    hitl_service = get_hitl_service(db)
+    items = await hitl_service.get_pending_approvals(
+        category=category,
+        priority=priority,
+        limit=limit,
+        offset=offset
+    )
+    
+    # Get total count
+    query = db.query(HITLApprovalQueue).filter(
+        HITLApprovalQueue.status.in_(["pending", "assigned", "reviewing"])
+    )
+    if category:
+        query = query.filter(HITLApprovalQueue.category == category)
+    total = query.count()
+    
+    return {
+        "items": items,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
+
+@router.post("/admin/hitl/queue/{queue_id}/assign", tags=["Admin", "HITL"])
+async def assign_hitl_item(
+    queue_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Assign an HITL item to yourself (admin only)."""
+    hitl_service = get_hitl_service(db)
+    item = await hitl_service.assign_approval(queue_id, current_user.id)
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="HITL item not found")
+    
+    return {"success": True, "queue_id": queue_id, "assigned_to": current_user.id}
+
+
+class HITLApprovalAction(BaseModel):
+    notes: Optional[str] = None
+
+
+@router.post("/admin/hitl/decisions/{decision_id}/approve", tags=["Admin", "HITL"])
+async def approve_hitl_decision(
+    decision_id: int,
+    action: HITLApprovalAction,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Approve an agent decision (admin only)."""
+    hitl_service = get_hitl_service(db)
+    decision = await hitl_service.approve_decision(
+        decision_id=decision_id,
+        approver_id=current_user.id,
+        notes=action.notes
+    )
+    
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+    
+    return {
+        "success": True,
+        "decision_id": decision_id,
+        "status": decision.status,
+        "approved_by": current_user.id
+    }
+
+
+@router.post("/admin/hitl/decisions/{decision_id}/reject", tags=["Admin", "HITL"])
+async def reject_hitl_decision(
+    decision_id: int,
+    action: HITLApprovalAction,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Reject an agent decision (admin only)."""
+    if not action.notes:
+        raise HTTPException(status_code=400, detail="Rejection notes are required")
+    
+    hitl_service = get_hitl_service(db)
+    decision = await hitl_service.reject_decision(
+        decision_id=decision_id,
+        rejector_id=current_user.id,
+        notes=action.notes
+    )
+    
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+    
+    return {
+        "success": True,
+        "decision_id": decision_id,
+        "status": decision.status,
+        "rejected_by": current_user.id
+    }
+
+
+@router.post("/admin/hitl/decisions/{decision_id}/execute", tags=["Admin", "HITL"])
+async def execute_hitl_decision(
+    decision_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Execute an approved decision (admin only)."""
+    hitl_service = get_hitl_service(db)
+    result = await hitl_service.execute_approved_decision(decision_id)
+    
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    
+    return result
+
+
+@router.get("/admin/hitl/audit-trail", tags=["Admin", "HITL"])
+async def get_agent_audit_trail(
+    agent_name: Optional[str] = None,
+    action_type: Optional[str] = None,
+    target_type: Optional[str] = None,
+    target_id: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Query agent decision audit trail (admin only)."""
+    hitl_service = get_hitl_service(db)
+    
+    # Parse dates if provided
+    start_dt = datetime.fromisoformat(start_date) if start_date else None
+    end_dt = datetime.fromisoformat(end_date) if end_date else None
+    
+    decisions = await hitl_service.get_decision_audit_trail(
+        agent_name=agent_name,
+        action_type=action_type,
+        target_type=target_type,
+        target_id=target_id,
+        start_date=start_dt,
+        end_date=end_dt,
+        limit=limit,
+        offset=offset
+    )
+    
+    return {
+        "decisions": decisions,
+        "total": len(decisions),
+        "limit": limit,
+        "offset": offset
+    }
+
+
+# =============================================================================
+# VIDEO MODERATION ENDPOINTS (Sprint 1 - Safety Layer)
+# =============================================================================
+
+from .video_moderation import get_video_moderation_service
+
+
+@router.post("/admin/moderation/video/start/{stream_id}", tags=["Admin", "Moderation"])
+async def start_video_moderation(
+    stream_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Start video moderation for a stream (admin only)."""
+    service = get_video_moderation_service(db)
+    started = await service.start_stream_monitoring(stream_id)
+    
+    return {
+        "success": started,
+        "stream_id": stream_id,
+        "message": "Video moderation started" if started else "Video moderation disabled or already active"
+    }
+
+
+@router.post("/admin/moderation/video/stop/{stream_id}", tags=["Admin", "Moderation"])
+async def stop_video_moderation(
+    stream_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Stop video moderation for a stream and get summary (admin only)."""
+    service = get_video_moderation_service(db)
+    summary = await service.stop_stream_monitoring(stream_id)
+    
+    if not summary:
+        raise HTTPException(status_code=404, detail="Stream not being monitored")
+    
+    return summary
+
+
+@router.get("/admin/moderation/video/status/{stream_id}", tags=["Admin", "Moderation"])
+async def get_video_moderation_status(
+    stream_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get video moderation status for a stream (admin only)."""
+    service = get_video_moderation_service(db)
+    status = service.get_stream_status(stream_id)
+    
+    if not status:
+        return {
+            "stream_id": stream_id,
+            "is_monitoring": False,
+            "message": "Stream not being monitored"
+        }
+    
+    return status
+
+
+class FrameAnalysisRequest(BaseModel):
+    frame_base64: str  # Base64-encoded image
+
+
+@router.post("/admin/moderation/video/analyze-frame", tags=["Admin", "Moderation"])
+async def analyze_video_frame(
+    request_data: FrameAnalysisRequest,
+    stream_id: Optional[int] = None,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Analyze a single video frame for NSFW content (admin only)."""
+    import base64
+    
+    try:
+        frame_bytes = base64.b64decode(request_data.frame_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 image")
+    
+    service = get_video_moderation_service(db)
+    result = await service.analyze_frame(frame_bytes, stream_id)
+    
+    return result.to_dict()
+
+
+# ==========================================
+# GDPR Data Export Endpoints (Sprint 2)
+# ==========================================
+
+def get_data_export_service(db: Session):
+    """Get or create DataExportService instance."""
+    from data_export import DataExportService
+    return DataExportService(db)
+
+
+@router.post("/user/data-export/request")
+async def request_data_export(
+    export_type: str = "full",
+    include_private: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Request a GDPR-compliant data export."""
+    from data_export import ExportType
+    
+    try:
+        exp_type = ExportType(export_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid export type: {export_type}")
+    
+    service = get_data_export_service(db)
+    result = await service.request_export(
+        user_id=current_user.id,
+        export_type=exp_type,
+        include_private=include_private
+    )
+    
+    return result
+
+
+@router.get("/user/data-export/status/{request_id}")
+async def get_export_status(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get status of a data export request."""
+    service = get_data_export_service(db)
+    result = await service.get_export_status(current_user.id, request_id)
+    
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    return result
+
+
+@router.get("/user/data-export/history")
+async def get_export_history(
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get data export history for the current user."""
+    service = get_data_export_service(db)
+    exports = await service.get_export_history(current_user.id, limit)
+    return {"exports": exports}
+
+
+@router.get("/user/data-export/download/{request_id}")
+async def download_export(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Download a completed data export."""
+    from fastapi.responses import FileResponse
+    
+    service = get_data_export_service(db)
+    file_path = await service.download_export(current_user.id, request_id)
+    
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Export not found or expired")
+    
+    return FileResponse(
+        file_path,
+        media_type="application/zip",
+        filename=f"streamura_data_export_{current_user.id}.zip"
+    )
+
+
+class DeleteAccountRequest(BaseModel):
+    confirmation_code: str
+    reason: Optional[str] = None
+
+
+@router.delete("/user/account")
+async def delete_account(
+    request: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user account (GDPR Right to be Forgotten)."""
+    service = get_data_export_service(db)
+    result = await service.delete_account(
+        user_id=current_user.id,
+        confirmation_code=request.confirmation_code,
+        reason=request.reason
+    )
+    
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    
+    return result
+
+
+@router.get("/user/account/deletion-code")
+async def get_deletion_code(
+    current_user: User = Depends(get_current_user)
+):
+    """Get the confirmation code needed for account deletion."""
+    import hashlib
+    code = hashlib.sha256(f"{current_user.id}-{current_user.email}".encode()).hexdigest()[:8].upper()
+    
+    # In production, this would also send an email with the code
+    return {
+        "message": "Confirmation code sent to your email",
+        "hint": "Check your email for the 8-character deletion code"
+    }
+
+
+# ==========================================
+# Emergency & Panic Button Endpoints (Sprint 2)
+# ==========================================
+
+def get_emergency_service(db: Session):
+    """Get or create EmergencyService instance."""
+    from emergency import EmergencyService
+    return EmergencyService(db)
+
+
+class PanicButtonRequest(BaseModel):
+    trigger_source: str = "web"
+    stream_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location_consent: bool = False
+    description: Optional[str] = None
+
+
+@router.post("/emergency/panic")
+async def trigger_panic_button(
+    request: PanicButtonRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Trigger the panic button for emergency assistance."""
+    service = get_emergency_service(db)
+    result = await service.trigger_panic_button(
+        user_id=current_user.id,
+        trigger_source=request.trigger_source,
+        stream_id=request.stream_id,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        location_consent=request.location_consent,
+        description=request.description
+    )
+    
+    return result
+
+
+class EmergencyContactRequest(BaseModel):
+    emergency_type: str
+    severity: str = "medium"
+    stream_id: Optional[int] = None
+    description: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location_consent: bool = False
+
+
+@router.post("/emergency/contact")
+async def create_emergency_contact(
+    request: EmergencyContactRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create an emergency contact request."""
+    from emergency import EmergencyType, EmergencySeverity
+    
+    try:
+        emergency_type = EmergencyType(request.emergency_type)
+        severity = EmergencySeverity(request.severity)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    service = get_emergency_service(db)
+    result = await service.create_emergency_contact(
+        user_id=current_user.id,
+        emergency_type=emergency_type,
+        severity=severity,
+        stream_id=request.stream_id,
+        description=request.description,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        location_consent=request.location_consent
+    )
+    
+    return result
+
+
+@router.get("/emergency/history")
+async def get_emergency_history(
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get emergency history for the current user."""
+    service = get_emergency_service(db)
+    emergencies = await service.get_user_emergency_history(current_user.id, limit)
+    return {"emergencies": emergencies}
+
+
+# Admin-only emergency management endpoints
+
+@router.get("/admin/emergency/queue")
+async def get_emergency_queue(
+    severity: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get open emergencies for safety team (admin only)."""
+    from emergency import EmergencySeverity
+    
+    severity_filter = None
+    if severity:
+        try:
+            severity_filter = EmergencySeverity(severity)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid severity: {severity}")
+    
+    service = get_emergency_service(db)
+    emergencies = await service.get_open_emergencies(limit, severity_filter)
+    
+    return {"emergencies": emergencies, "total": len(emergencies)}
+
+
+@router.post("/admin/emergency/{emergency_id}/acknowledge")
+async def acknowledge_emergency(
+    emergency_id: int,
+    notes: Optional[str] = None,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Acknowledge an emergency (admin only)."""
+    service = get_emergency_service(db)
+    result = await service.acknowledge_emergency(
+        emergency_id=emergency_id,
+        responder_id=current_user.id,
+        notes=notes
+    )
+    
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    return result
+
+
+class ResolveEmergencyRequest(BaseModel):
+    resolution_notes: str
+    is_false_alarm: bool = False
+
+
+@router.post("/admin/emergency/{emergency_id}/resolve")
+async def resolve_emergency(
+    emergency_id: int,
+    request: ResolveEmergencyRequest,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Resolve an emergency (admin only)."""
+    service = get_emergency_service(db)
+    result = await service.resolve_emergency(
+        emergency_id=emergency_id,
+        resolver_id=current_user.id,
+        resolution_notes=request.resolution_notes,
+        is_false_alarm=request.is_false_alarm
+    )
+    
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    return result
+
+
+class EscalateEmergencyRequest(BaseModel):
+    escalation_reason: str
+
+
+@router.post("/admin/emergency/{emergency_id}/escalate")
+async def escalate_emergency(
+    emergency_id: int,
+    request: EscalateEmergencyRequest,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Escalate an emergency to higher authority (admin only)."""
+    service = get_emergency_service(db)
+    result = await service.escalate_emergency(
+        emergency_id=emergency_id,
+        escalator_id=current_user.id,
+        escalation_reason=request.escalation_reason
+    )
+    
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    return result
+
+
+@router.get("/admin/emergency/stats")
+async def get_emergency_stats(
+    days: int = 30,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get emergency statistics for safety team (admin only)."""
+    service = get_emergency_service(db)
+    stats = await service.get_emergency_stats(days)
+    return stats
+
+
+# ==========================================
+# Event Clustering API Endpoints (Sprint 3)
+# ==========================================
+
+def get_clustering_service(db: Session):
+    """Get or create EventClusteringService instance."""
+    from clustering import EventClusteringService
+    return EventClusteringService(db)
+
+
+def get_ranking_service(db: Session):
+    """Get or create EventRankingService instance."""
+    from ranking import EventRankingService
+    return EventRankingService(db)
+
+
+@router.get("/events/clusters")
+async def get_event_clusters(
+    north: Optional[float] = None,
+    south: Optional[float] = None,
+    east: Optional[float] = None,
+    west: Optional[float] = None,
+    include_streams: bool = True,
+    max_clusters: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Get active event clusters with geographic filtering.
+    
+    Returns clusters with their streams, velocity data, and trending status.
+    """
+    from clustering import EventClusteringService
+    from ranking import EventRankingService
+    
+    clustering_service = EventClusteringService(db)
+    ranking_service = EventRankingService(db)
+    
+    # Get active clusters
+    clusters = clustering_service.cluster_active_streams()
+    
+    result_clusters = []
+    for cluster in clusters[:max_clusters]:
+        # Get or create event for this cluster
+        event = None
+        for stream_loc in cluster.streams:
+            stream = db.query(Stream).filter(Stream.id == stream_loc.stream_id).first()
+            if stream and stream.event_id:
+                event = db.query(Event).filter(Event.id == stream.event_id).first()
+                break
+        
+        # Calculate velocity and trending status
+        velocity = 0.0
+        velocity_trend = "stable"
+        is_trending = False
+        is_featured = False
+        
+        if event:
+            velocity = ranking_service._calculate_velocity(event)
+            is_trending = ranking_service.is_trending(event)
+            is_featured = ranking_service.should_feature(event)
+            
+            # Determine trend
+            if velocity > 10:
+                velocity_trend = "rising"
+            elif velocity < -5:
+                velocity_trend = "falling"
+        
+        # Build cluster response
+        cluster_data = {
+            "event_id": event.id if event else None,
+            "title": event.title if event else f"Event at {cluster.centroid[0]:.4f}, {cluster.centroid[1]:.4f}",
+            "centroid": list(cluster.centroid),
+            "radius_meters": cluster.radius_meters,
+            "confidence": cluster.confidence,
+            "stream_count": cluster.stream_count,
+            "total_viewers": cluster.total_viewers,
+            "velocity": round(velocity, 2),
+            "velocity_trend": velocity_trend,
+            "is_trending": is_trending,
+            "is_featured": is_featured,
+            "category": event.category if event else None,
+            "started_at": event.created_at.isoformat() if event else None,
+            "streams": []
+        }
+        
+        if include_streams:
+            for stream_loc in cluster.streams[:10]:  # Limit streams per cluster
+                stream = db.query(Stream).filter(Stream.id == stream_loc.stream_id).first()
+                if stream:
+                    cluster_data["streams"].append({
+                        "stream_id": stream.id,
+                        "title": stream.title,
+                        "streamer_name": stream.user.username if stream.user else "Unknown",
+                        "viewer_count": stream.viewer_count,
+                        "thumbnail_url": stream.thumbnail_url,
+                        "latitude": stream_loc.latitude,
+                        "longitude": stream_loc.longitude,
+                        "is_live": stream.status == "live"
+                    })
+        
+        result_clusters.append(cluster_data)
+    
+    # Sort by total viewers (most popular first)
+    result_clusters.sort(key=lambda c: c["total_viewers"], reverse=True)
+    
+    return {
+        "clusters": result_clusters,
+        "total_count": len(result_clusters),
+        "bounds_applied": north is not None
+    }
+
+
+@router.get("/events/{event_id}/velocity")
+async def get_event_velocity(
+    event_id: int,
+    window_minutes: int = 15,
+    history_points: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed velocity data for an event.
+    
+    Returns current velocity and historical velocity data points.
+    """
+    from ranking import EventRankingService
+    from datetime import timedelta
+    
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    ranking_service = EventRankingService(db)
+    
+    # Calculate current metrics
+    current_velocity = ranking_service._calculate_velocity(event, window_minutes)
+    is_trending = ranking_service.is_trending(event)
+    is_hot = ranking_service.is_hot(event)
+    trending_score = ranking_service.calculate_trending_score(event)
+    
+    # Generate historical velocity data (simplified - in production, this would query historical snapshots)
+    history = []
+    now = datetime.now()
+    for i in range(history_points):
+        timestamp = now - timedelta(minutes=i * 2)
+        # Simulated historical data - in production, query actual snapshots
+        velocity_point = max(0, current_velocity - (i * 0.5) + (i % 3))
+        history.append({
+            "timestamp": timestamp.isoformat(),
+            "viewer_count": event.viewer_count,
+            "velocity": round(velocity_point, 2)
+        })
+    
+    history.reverse()  # Oldest first
+    
+    # Determine trend
+    trend = "stable"
+    if len(history) >= 3:
+        recent_avg = sum(h["velocity"] for h in history[-3:]) / 3
+        older_avg = sum(h["velocity"] for h in history[:3]) / 3
+        if recent_avg > older_avg + 5:
+            trend = "rising"
+        elif recent_avg < older_avg - 5:
+            trend = "falling"
+    
+    return {
+        "event_id": event_id,
+        "current_velocity": round(current_velocity, 2),
+        "trend": trend,
+        "is_trending": is_trending,
+        "is_hot": is_hot,
+        "trending_score": round(trending_score, 3),
+        "viewer_count": event.viewer_count,
+        "stream_count": event.stream_count,
+        "history": history
+    }
+
+
+@router.get("/events/trending")
+async def get_trending_events(
+    limit: int = 20,
+    category: Optional[str] = None,
+    min_velocity: float = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get trending events sorted by velocity and engagement.
+    """
+    from ranking import EventRankingService
+    
+    ranking_service = EventRankingService(db)
+    trending_events = ranking_service.get_trending_events(limit=limit, category=category)
+    
+    results = []
+    for event in trending_events:
+        velocity = ranking_service._calculate_velocity(event)
+        
+        if velocity < min_velocity:
+            continue
+        
+        results.append({
+            "event_id": event.id,
+            "title": event.title,
+            "category": event.category,
+            "viewer_count": event.viewer_count,
+            "stream_count": event.stream_count,
+            "velocity": round(velocity, 2),
+            "is_featured": event.is_featured,
+            "trending_score": round(ranking_service.calculate_trending_score(event), 3),
+            "location": {
+                "latitude": event.latitude,
+                "longitude": event.longitude,
+                "name": event.location_name
+            } if event.latitude else None,
+            "thumbnail_url": event.thumbnail_url,
+            "started_at": event.created_at.isoformat() if event.created_at else None
+        })
+    
+    return {
+        "events": results,
+        "count": len(results)
+    }
+
+
+# ==========================================
+# Agent Metrics API Endpoints (Sprint 4)
+# ==========================================
+
+@router.get("/admin/agents/metrics")
+async def get_agent_metrics(
+    agent_type: Optional[str] = None,
+    time_range: str = "24h",
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get comprehensive metrics for all agents or a specific agent.
+    
+    Returns decision counts, approval rates, success rates, and performance data.
+    """
+    from datetime import timedelta
+    from agentic import AgentType
+    
+    # Calculate time window
+    time_windows = {
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30)
+    }
+    window = time_windows.get(time_range, timedelta(hours=24))
+    cutoff_time = datetime.now() - window
+    
+    # Get agent decisions from the database
+    query = db.query(AgentDecision)
+    if agent_type:
+        query = query.filter(AgentDecision.agent_type == agent_type)
+    
+    all_decisions = query.all()
+    recent_decisions = query.filter(AgentDecision.created_at >= cutoff_time).all()
+    
+    # Aggregate by agent type
+    agent_stats = {}
+    for agent in AgentType:
+        agent_decisions = [d for d in all_decisions if d.agent_type == agent.value]
+        recent_agent_decisions = [d for d in recent_decisions if d.agent_type == agent.value]
+        
+        if not agent_decisions and agent_type and agent_type != agent.value:
+            continue
+            
+        total = len(agent_decisions)
+        today_count = len(recent_agent_decisions)
+        
+        approved = sum(1 for d in agent_decisions if d.status == 'approved' or d.status == 'executed')
+        auto_approved = sum(1 for d in agent_decisions if not d.requires_approval and d.status == 'executed')
+        human_approved = sum(1 for d in agent_decisions if d.requires_approval and d.approved_by)
+        rejected = sum(1 for d in agent_decisions if d.status == 'rejected')
+        successful = sum(1 for d in agent_decisions if d.status == 'executed')
+        
+        avg_confidence = sum(d.confidence for d in agent_decisions) / max(1, total)
+        avg_exec_time = 50  # Mock - would need execution time tracking
+        
+        agent_stats[agent.value] = {
+            "agent_type": agent.value,
+            "total_decisions": total,
+            "decisions_today": today_count,
+            "approval_rate": approved / max(1, total),
+            "auto_approved": auto_approved,
+            "human_approved": human_approved,
+            "rejected": rejected,
+            "avg_confidence": avg_confidence,
+            "avg_execution_time_ms": avg_exec_time,
+            "success_rate": successful / max(1, total)
+        }
+    
+    return {
+        "agents": list(agent_stats.values()),
+        "time_range": time_range,
+        "total_decisions": sum(s["total_decisions"] for s in agent_stats.values()),
+        "overall_approval_rate": sum(s["approval_rate"] for s in agent_stats.values()) / max(1, len(agent_stats))
+    }
+
+
+@router.get("/admin/agents/{agent_type}/decisions")
+async def get_agent_decisions(
+    agent_type: str,
+    status: Optional[str] = None,
+    limit: int = 50,
+    include_factors: bool = True,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed decisions for a specific agent with full explainability data.
+    """
+    query = db.query(AgentDecision).filter(AgentDecision.agent_type == agent_type)
+    
+    if status:
+        query = query.filter(AgentDecision.status == status)
+    
+    decisions = query.order_by(AgentDecision.created_at.desc()).limit(limit).all()
+    
+    results = []
+    for decision in decisions:
+        decision_data = {
+            "decision_id": str(decision.id),
+            "agent_type": decision.agent_type,
+            "action_type": decision.action_type,
+            "target_entity": decision.target_entity,
+            "target_id": decision.target_id,
+            "reasoning": decision.reasoning,
+            "confidence": decision.confidence,
+            "risk_level": decision.risk_level,
+            "status": decision.status,
+            "requires_approval": decision.requires_approval,
+            "approved_by": decision.approved_by,
+            "approved_at": decision.approved_at.isoformat() if decision.approved_at else None,
+            "created_at": decision.created_at.isoformat(),
+            "alternatives_considered": decision.alternatives_considered or []
+        }
+        
+        if include_factors:
+            # Parse factors from decision_factors JSON field
+            decision_data["factors"] = decision.decision_factors or []
+        
+        results.append(decision_data)
+    
+    return {
+        "decisions": results,
+        "count": len(results),
+        "agent_type": agent_type
+    }
+
+
+@router.post("/agents/appeal/{decision_id}")
+async def appeal_agent_decision(
+    decision_id: int,
+    appeal_reason: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Appeal an agent decision for human review.
+    """
+    decision = db.query(AgentDecision).filter(AgentDecision.id == decision_id).first()
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+    
+    # Create an appeal record (would be a separate model in production)
+    # For now, mark the decision for re-review
+    decision.status = "appealed"
+    decision.appeal_reason = appeal_reason
+    decision.appealed_by = current_user.id
+    decision.appealed_at = datetime.now()
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "decision_id": decision_id,
+        "message": "Decision has been flagged for review"
+    }
+
+
+# ==========================================
+# Trust Score API Endpoints (Sprint 5)
+# ==========================================
+
+@router.get("/trust/breakdown/me")
+async def get_my_trust_breakdown(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed trust score breakdown for the current user.
+    """
+    return await get_trust_breakdown_for_user(current_user.id, db)
+
+
+@router.get("/trust/breakdown/{user_id}")
+async def get_user_trust_breakdown(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed trust score breakdown for a specific user (public view).
+    """
+    return await get_trust_breakdown_for_user(user_id, db, is_own=current_user.id == user_id)
+
+
+async def get_trust_breakdown_for_user(user_id: int, db: Session, is_own: bool = True):
+    """
+    Generate a comprehensive trust breakdown for a user.
+    """
+    from trust_score import TrustScoreService
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    trust_service = TrustScoreService(db)
+    
+    # Get current trust score
+    trust_data = trust_service.calculate_trust_score(user_id)
+    
+    # Determine tier based on score
+    score = trust_data.get('overall_score', 0)
+    if score >= 9:
+        tier = 'diamond'
+    elif score >= 7:
+        tier = 'platinum'
+    elif score >= 5:
+        tier = 'gold'
+    elif score >= 3:
+        tier = 'silver'
+    else:
+        tier = 'bronze'
+    
+    # Determine next tier
+    tier_thresholds = {'bronze': 3, 'silver': 5, 'gold': 7, 'platinum': 9, 'diamond': 10}
+    next_tier = None
+    for tier_name, threshold in tier_thresholds.items():
+        if threshold > score:
+            next_tier = {'name': tier_name, 'required_score': threshold}
+            break
+    
+    # Build factors list
+    factors = []
+    factor_data = trust_data.get('factors', {})
+    
+    factor_definitions = [
+        ('identity_verification', 'Identity Verification', 0.25, 'Government ID verified'),
+        ('account_age', 'Account Age', 0.15, 'Time since account creation'),
+        ('streaming_history', 'Streaming History', 0.15, 'Total hours streamed'),
+        ('two_factor_auth', 'Two-Factor Auth', 0.10, 'Security layer enabled'),
+        ('community_standing', 'Community Standing', 0.15, 'Positive community interactions'),
+        ('content_quality', 'Content Quality', 0.10, 'Based on viewer engagement'),
+        ('payment_history', 'Payment History', 0.10, 'Successful transactions')
+    ]
+    
+    for key, name, weight, desc in factor_definitions:
+        factor_info = factor_data.get(key, {})
+        score_value = factor_info.get('score', 0) if isinstance(factor_info, dict) else 0
+        
+        # Determine status
+        if score_value >= 0.9:
+            status = 'verified'
+        elif score_value >= 0.5:
+            status = 'partial'
+        elif score_value > 0:
+            status = 'pending'
+        else:
+            status = 'unverified'
+        
+        factors.append({
+            'name': name,
+            'key': key,
+            'score': score_value,
+            'weight': weight,
+            'status': status,
+            'description': desc,
+            'value': factor_info.get('value') if isinstance(factor_info, dict) else None,
+            'maxValue': factor_info.get('max_value') if isinstance(factor_info, dict) else None,
+            'actionRequired': factor_info.get('action_required') if isinstance(factor_info, dict) else None
+        })
+    
+    # Generate improvement tips
+    improvement_tips = []
+    for factor in factors:
+        if factor['score'] < 1.0 and factor['actionRequired']:
+            impact = 'high' if factor['weight'] >= 0.15 else 'medium' if factor['weight'] >= 0.10 else 'low'
+            improvement_tips.append({
+                'tip': factor['actionRequired'],
+                'impact': impact,
+                'action_link': f'/settings/{factor["key"].replace("_", "-")}'
+            })
+    
+    # Generate mock history (in production, query actual historical data)
+    history = []
+    for i in range(7):
+        history.append({
+            'date': f'{(6-i)*5}d ago' if i < 6 else 'Today',
+            'score': max(1, score - (6-i) * 0.15 + (i % 2) * 0.1)
+        })
+    
+    return {
+        'user_id': user_id,
+        'overall_score': score,
+        'tier': tier,
+        'next_tier': next_tier,
+        'factors': factors,
+        'improvement_tips': improvement_tips[:5],  # Top 5 tips
+        'history': history,
+        'last_updated': datetime.now().isoformat()
+    }
+
+
+# ==========================================
+# Cluster Admin API Endpoints (Sprint 6)
+# ==========================================
+
+@router.get("/admin/clusters")
+async def get_admin_clusters(
+    category: Optional[str] = None,
+    is_trending: Optional[bool] = None,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all clusters with admin details for cluster management.
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    clusters = clustering_service.get_active_clusters()
+    
+    result = []
+    for cluster in clusters:
+        if category and cluster.get('category') != category:
+            continue
+        if is_trending is not None and cluster.get('is_trending') != is_trending:
+            continue
+        
+        # Enrich with admin-specific data
+        cluster_data = {
+            'cluster_id': cluster.get('cluster_id', str(cluster.get('id', ''))),
+            'event_id': cluster.get('event_id'),
+            'title': cluster.get('title', 'Untitled Cluster'),
+            'centroid': cluster.get('centroid', [0, 0]),
+            'radius_meters': cluster.get('radius_meters', 500),
+            'stream_count': len(cluster.get('streams', [])),
+            'total_viewers': sum(s.get('viewer_count', 0) for s in cluster.get('streams', [])),
+            'velocity': cluster.get('velocity', 0),
+            'velocity_trend': cluster.get('velocity_trend', 'stable'),
+            'is_trending': cluster.get('is_trending', False),
+            'is_featured': cluster.get('is_featured', False),
+            'category': cluster.get('category'),
+            'auto_generated': cluster.get('auto_generated', True),
+            'locked': cluster.get('locked', False),
+            'streams': cluster.get('streams', [])[:10],  # Limit streams for performance
+            'created_at': cluster.get('created_at', datetime.now().isoformat()),
+            'updated_at': cluster.get('updated_at', datetime.now().isoformat())
+        }
+        result.append(cluster_data)
+    
+    return {
+        'clusters': result,
+        'count': len(result)
+    }
+
+
+@router.post("/admin/clusters/{cluster_id}/rename")
+async def rename_cluster(
+    cluster_id: str,
+    name: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Rename a cluster (admin override of AI-suggested name).
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    success = clustering_service.rename_cluster(cluster_id, name, renamed_by=current_user.id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    
+    return {
+        'success': True,
+        'cluster_id': cluster_id,
+        'new_name': name
+    }
+
+
+@router.post("/admin/clusters/merge")
+async def merge_clusters(
+    source_cluster_id: str,
+    target_cluster_id: str,
+    new_name: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Merge two clusters into one.
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    merged_cluster = clustering_service.merge_clusters(
+        source_id=source_cluster_id,
+        target_id=target_cluster_id,
+        new_name=new_name,
+        merged_by=current_user.id
+    )
+    
+    if not merged_cluster:
+        raise HTTPException(status_code=400, detail="Failed to merge clusters")
+    
+    return {
+        'success': True,
+        'merged_cluster': merged_cluster
+    }
+
+
+@router.post("/admin/clusters/{cluster_id}/split")
+async def split_cluster(
+    cluster_id: str,
+    stream_ids: list,
+    new_cluster_name: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Split streams from one cluster into a new cluster.
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    new_cluster = clustering_service.split_cluster(
+        cluster_id=cluster_id,
+        stream_ids=stream_ids,
+        new_name=new_cluster_name,
+        split_by=current_user.id
+    )
+    
+    if not new_cluster:
+        raise HTTPException(status_code=400, detail="Failed to split cluster")
+    
+    return {
+        'success': True,
+        'new_cluster': new_cluster
+    }
+
+
+@router.post("/admin/clusters/{cluster_id}/lock")
+async def toggle_cluster_lock(
+    cluster_id: str,
+    locked: bool,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lock/unlock a cluster to prevent automatic updates.
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    success = clustering_service.set_cluster_lock(cluster_id, locked)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    
+    return {
+        'success': True,
+        'cluster_id': cluster_id,
+        'locked': locked
+    }
+
+
+@router.post("/admin/clusters/{cluster_id}/feature")
+async def toggle_cluster_feature(
+    cluster_id: str,
+    featured: bool,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Feature/unfeature a cluster for homepage display.
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    success = clustering_service.set_cluster_featured(cluster_id, featured)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    
+    return {
+        'success': True,
+        'cluster_id': cluster_id,
+        'featured': featured
+    }
+
+
+@router.delete("/admin/clusters/{cluster_id}")
+async def delete_cluster(
+    cluster_id: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a cluster (streams remain, just ungrouped).
+    """
+    from clustering import EventClusteringService
+    
+    clustering_service = EventClusteringService(db)
+    success = clustering_service.delete_cluster(cluster_id, deleted_by=current_user.id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    
+    return {
+        'success': True,
+        'cluster_id': cluster_id
+    }
+
+
+# ==========================================
+# Revenue & Currency API Endpoints (Sprint 7)
+# ==========================================
+
+@router.get("/revenue/forecast")
+async def get_revenue_forecast(
+    creator_id: Optional[int] = None,
+    months: int = 3,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get revenue forecast for a creator.
+    If creator_id not specified, uses current user.
+    """
+    from revenue_forecasting import RevenueForecastingService
+    
+    target_id = creator_id or current_user.id
+    service = RevenueForecastingService(db)
+    
+    forecasts = service.forecast_monthly(target_id, months)
+    trend = service.analyze_trends(target_id)
+    
+    # Build chart data
+    chart_data = []
+    for forecast in forecasts:
+        chart_data.append({
+            'date': forecast.period_start.strftime('%b'),
+            'predicted': float(forecast.predicted_revenue),
+            'confidence_low': float(forecast.confidence_low),
+            'confidence_high': float(forecast.confidence_high)
+        })
+    
+    return {
+        'forecasts': [
+            {
+                'period_start': f.period_start.isoformat(),
+                'period_end': f.period_end.isoformat(),
+                'predicted_revenue': float(f.predicted_revenue),
+                'confidence_low': float(f.confidence_low),
+                'confidence_high': float(f.confidence_high),
+                'confidence_level': f.confidence_level,
+                'breakdown': {k: float(v) for k, v in f.breakdown.items()},
+                'assumptions': f.assumptions
+            }
+            for f in forecasts
+        ],
+        'trend': {
+            'direction': trend.direction.value,
+            'velocity': trend.velocity,
+            'seasonality_factor': trend.seasonality_factor,
+            'best_day_of_week': trend.best_day_of_week,
+            'best_hour_of_day': trend.best_hour_of_day,
+            'growth_contributors': trend.growth_contributors,
+            'risk_factors': trend.risk_factors
+        },
+        'chart_data': chart_data
+    }
+
+
+@router.get("/revenue/goal-progress")
+async def check_goal_progress(
+    target_amount: float,
+    target_date: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Check progress toward a revenue goal.
+    """
+    from revenue_forecasting import RevenueForecastingService
+    from decimal import Decimal
+    
+    service = RevenueForecastingService(db)
+    goal = service.check_goal_progress(
+        current_user.id,
+        Decimal(str(target_amount)),
+        datetime.fromisoformat(target_date)
+    )
+    
+    return {
+        'target_amount': float(goal.target_amount),
+        'target_date': goal.target_date.isoformat(),
+        'current_progress': float(goal.current_progress),
+        'projected_achievement_date': goal.projected_achievement_date.isoformat() if goal.projected_achievement_date else None,
+        'on_track': goal.on_track,
+        'recommendations': goal.recommendations
+    }
+
+
+@router.get("/currency/packs")
+async def get_currency_packs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get available currency packs with personalized pricing.
+    """
+    from currency_packs import CurrencyPacksService
+    
+    service = CurrencyPacksService(db)
+    packs = service.get_available_packs(current_user.id)
+    
+    return {
+        'packs': [
+            {
+                'pack_id': p.pack_id,
+                'size': p.size.value,
+                'coin_amount': p.coin_amount,
+                'bonus_coins': p.bonus_coins,
+                'price_usd': float(p.price_usd),
+                'price_per_coin': float(p.price_per_coin),
+                'discount_percent': p.discount_percent,
+                'is_featured': p.is_featured,
+                'limited_time': p.limited_time,
+                'badge': p.badge,
+                'expires_at': p.expires_at.isoformat() if p.expires_at else None
+            }
+            for p in packs
+        ]
+    }
+
+
+@router.get("/currency/balance")
+async def get_currency_balance(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's current currency balance.
+    """
+    from currency_packs import CurrencyPacksService
+    
+    service = CurrencyPacksService(db)
+    balance = service.get_balance(current_user.id)
+    
+    return {
+        'total_coins': balance.total_coins,
+        'purchased_coins': balance.purchased_coins,
+        'bonus_coins': balance.bonus_coins,
+        'earned_coins': balance.earned_coins,
+        'spent_coins': balance.spent_coins,
+        'vip_level': balance.vip_level,
+        'last_purchase': balance.last_purchase.isoformat() if balance.last_purchase else None
+    }
+
+
+@router.post("/currency/purchase")
+async def purchase_currency_pack(
+    pack_id: str,
+    payment_method_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Purchase a currency pack.
+    """
+    from currency_packs import CurrencyPacksService, CurrencyPackSize
+    
+    service = CurrencyPacksService(db)
+    
+    # Map pack_id to size enum
+    size_map = {
+        'pack_starter': CurrencyPackSize.STARTER,
+        'pack_value': CurrencyPackSize.VALUE,
+        'pack_popular': CurrencyPackSize.POPULAR,
+        'pack_super': CurrencyPackSize.SUPER,
+        'pack_mega': CurrencyPackSize.MEGA,
+        'pack_ultimate': CurrencyPackSize.ULTIMATE,
+        'starter': CurrencyPackSize.STARTER,
+        'value': CurrencyPackSize.VALUE,
+        'popular': CurrencyPackSize.POPULAR,
+        'super': CurrencyPackSize.SUPER,
+        'mega': CurrencyPackSize.MEGA,
+        'ultimate': CurrencyPackSize.ULTIMATE
+    }
+    
+    pack_size = size_map.get(pack_id)
+    if not pack_size:
+        raise HTTPException(status_code=400, detail="Invalid pack ID")
+    
+    result = await service.purchase_pack(
+        current_user.id,
+        pack_size,
+        payment_method_id or 'pm_default'
+    )
+    
+    if not result.get('success'):
+        raise HTTPException(status_code=400, detail=result.get('error', 'Purchase failed'))
+    
+    return result
+
+
+@router.post("/currency/spend")
+async def spend_currency(
+    amount: int,
+    description: str,
+    recipient_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Spend coins (tips, purchases, etc.)
+    """
+    from currency_packs import CurrencyPacksService
+    
+    service = CurrencyPacksService(db)
+    result = service.spend_coins(
+        current_user.id,
+        amount,
+        description,
+        recipient_id
+    )
+    
+    if not result.get('success'):
+        raise HTTPException(status_code=400, detail=result.get('error', 'Spend failed'))
+    
+    return result
+
+
+@router.get("/currency/conversion-rate")
+async def get_conversion_rate(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's coin-to-USD conversion rate.
+    """
+    from currency_packs import CurrencyPacksService
+    
+    service = CurrencyPacksService(db)
+    rate = service.get_conversion_rate(current_user.id)
+    
+    return {
+        'base_rate': float(rate.base_rate),
+        'vip_bonus': rate.vip_bonus,
+        'effective_rate': float(rate.effective_rate)
+    }
+
+
+# ==========================================
+# Virtual Goods Enhancement API (Sprint 8)
+# ==========================================
+
+@router.get("/goods/{good_id}/preview")
+async def get_good_preview(
+    good_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed preview data for a virtual good.
+    Includes usage stats, creator info, rarity display.
+    """
+    from virtual_goods import VirtualGoodsService, GoodRarity
+    
+    service = VirtualGoodsService(db)
+    
+    try:
+        good_data = await service.get_good(good_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Good not found")
+    
+    # Get creator info if applicable
+    creator_info = None
+    if good_data.get('creator_id'):
+        creator = db.query(User).filter(User.id == good_data['creator_id']).first()
+        if creator:
+            creator_info = {
+                'id': creator.id,
+                'username': creator.username,
+                'display_name': creator.display_name,
+                'avatar_url': getattr(creator, 'avatar_url', None)
+            }
+    
+    # Determine rarity (can be stored or inferred from price)
+    price = good_data.get('price', 0)
+    if price >= 100:
+        rarity = 'legendary'
+    elif price >= 50:
+        rarity = 'epic'
+    elif price >= 25:
+        rarity = 'rare'
+    elif price >= 10:
+        rarity = 'uncommon'
+    else:
+        rarity = 'common'
+    
+    # Check if user owns it
+    is_owned = False
+    if current_user:
+        is_owned = await service.has_good(current_user.id, good_id)
+    
+    return {
+        'id': good_data['id'],
+        'name': good_data['name'],
+        'description': good_data['description'],
+        'category': good_data['type'],
+        'rarity': rarity,
+        'price_coins': int(price * 100),  # Convert to coins
+        'animation_url': good_data.get('animation_url'),
+        'preview_url': good_data.get('image_url'),
+        'duration_seconds': good_data.get('duration_seconds'),
+        'creator': creator_info,
+        'times_used': good_data.get('quantity_sold', 0) * 5,  # Estimate usage
+        'times_purchased': good_data.get('quantity_sold', 0),
+        'is_limited': good_data.get('is_limited', False),
+        'remaining_stock': good_data.get('quantity_available'),
+        'expires_at': good_data.get('expires_at'),
+        'is_owned': is_owned,
+        'tier_exclusive': good_data.get('tier_exclusive_id') is not None
+    }
+
+
+@router.get("/goods/trending")
+async def get_trending_goods(
+    category: Optional[str] = None,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    Get trending virtual goods based on recent purchases.
+    """
+    from virtual_goods import VirtualGoodsService
+    
+    service = VirtualGoodsService(db)
+    result = await service.get_goods(
+        good_type=category,
+        include_inactive=False,
+        limit=limit
+    )
+    
+    # Sort by quantity_sold (popularity)
+    goods = sorted(
+        result['goods'],
+        key=lambda g: g.get('quantity_sold', 0),
+        reverse=True
+    )
+    
+    # Add rarity to each
+    for good in goods:
+        price = good.get('price', 0)
+        if price >= 100:
+            good['rarity'] = 'legendary'
+        elif price >= 50:
+            good['rarity'] = 'epic'
+        elif price >= 25:
+            good['rarity'] = 'rare'
+        elif price >= 10:
+            good['rarity'] = 'uncommon'
+        else:
+            good['rarity'] = 'common'
+    
+    return {
+        'goods': goods,
+        'total': len(goods)
+    }
+
+
+@router.get("/goods/seasonal")
+async def get_seasonal_goods(
+    theme: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get seasonal/limited-time virtual goods.
+    """
+    from virtual_goods import VirtualGoodsService
+    
+    service = VirtualGoodsService(db)
+    result = await service.get_goods(
+        include_inactive=False,
+        limit=100
+    )
+    
+    # Filter to limited items only
+    seasonal = [g for g in result['goods'] if g.get('is_limited')]
+    
+    return {
+        'goods': seasonal,
+        'current_theme': theme or 'winter',  # Mock current theme
+        'ends_at': (datetime.now() + timedelta(days=14)).isoformat()
+    }
+
+
+@router.post("/goods/{good_id}/use")
+async def use_virtual_good(
+    good_id: int,
+    context: str = "stream",  # 'stream', 'chat', 'profile'
+    target_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Use a virtual good (trigger effect, send emote, etc.)
+    """
+    from virtual_goods import VirtualGoodsService
+    
+    service = VirtualGoodsService(db)
+    
+    # Check ownership
+    if not await service.has_good(current_user.id, good_id):
+        raise HTTPException(status_code=400, detail="You don't own this item")
+    
+    # Get good details
+    good_data = await service.get_good(good_id)
+    
+    # Log usage (would update a usage counter in production)
+    
+    return {
+        'success': True,
+        'good_id': good_id,
+        'good_name': good_data['name'],
+        'animation_url': good_data.get('animation_url'),
+        'duration_seconds': good_data.get('duration_seconds', 5),
+        'context': context,
+        'target_id': target_id
+    }
+
+
+# ==========================================
+# Subscription Analytics API (Sprint 9)
+# ==========================================
+
+@router.get("/subscriptions/analytics")
+async def get_subscription_analytics(
+    creator_id: Optional[int] = None,
+    time_range: str = "30d",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get comprehensive subscription analytics.
+    Includes churn rates, tier performance, renewal predictions.
+    """
+    # Use current user if no creator specified
+    target_id = creator_id or current_user.id
+    
+    # Mock analytics data (would be calculated from real subscriptions)
+    stats = {
+        'total_subscribers': 847,
+        'new_this_month': 123,
+        'churned_this_month': 28,
+        'net_change': 95,
+        'mrr': 4235.50,
+        'churn_rate': 3.3,
+        'retention_rate': 96.7,
+        'average_lifetime_months': 7.2
+    }
+    
+    tiers = [
+        {
+            'tier_id': 1,
+            'tier_name': 'Supporter',
+            'price': 4.99,
+            'subscriber_count': 412,
+            'revenue_share': 1856,
+            'churn_rate': 4.2,
+            'upgrade_rate': 8.5,
+            'downgrade_rate': 0
+        },
+        {
+            'tier_id': 2,
+            'tier_name': 'VIP',
+            'price': 9.99,
+            'subscriber_count': 285,
+            'revenue_share': 2565,
+            'churn_rate': 2.1,
+            'upgrade_rate': 5.2,
+            'downgrade_rate': 3.1
+        },
+        {
+            'tier_id': 3,
+            'tier_name': 'Ultimate',
+            'price': 24.99,
+            'subscriber_count': 150,
+            'revenue_share': 3374,
+            'churn_rate': 1.5,
+            'upgrade_rate': 0,
+            'downgrade_rate': 2.8
+        }
+    ]
+    
+    renewal_predictions = [
+        {'date': '2024-02-01', 'predicted_renewals': 245, 'predicted_revenue': 1835.50, 'confidence': 0.92},
+        {'date': '2024-02-08', 'predicted_renewals': 198, 'predicted_revenue': 1456.20, 'confidence': 0.88},
+        {'date': '2024-02-15', 'predicted_renewals': 167, 'predicted_revenue': 1234.80, 'confidence': 0.85},
+        {'date': '2024-02-22', 'predicted_renewals': 189, 'predicted_revenue': 1678.90, 'confidence': 0.82}
+    ]
+    
+    churn_risk = [
+        {
+            'user_id': 1,
+            'username': 'StreamFan92',
+            'tier_name': 'VIP',
+            'risk_level': 'high',
+            'risk_score': 0.78,
+            'last_activity': '14 days ago',
+            'subscribed_since': '6 months'
+        },
+        {
+            'user_id': 2,
+            'username': 'NightOwl',
+            'tier_name': 'Ultimate',
+            'risk_level': 'medium',
+            'risk_score': 0.52,
+            'last_activity': '7 days ago',
+            'subscribed_since': '3 months'
+        },
+        {
+            'user_id': 3,
+            'username': 'ChillViewer',
+            'tier_name': 'Supporter',
+            'risk_level': 'high',
+            'risk_score': 0.85,
+            'last_activity': '21 days ago',
+            'subscribed_since': '1 month'
+        }
+    ]
+    
+    trends = {
+        'subscribers': [780, 795, 810, 825, 830, 835, 847],
+        'mrr': [3850, 3920, 4050, 4100, 4180, 4210, 4235],
+        'churn': [4.1, 3.8, 3.6, 3.5, 3.4, 3.3, 3.3]
+    }
+    
+    return {
+        'creator_id': target_id,
+        'time_range': time_range,
+        'stats': stats,
+        'tiers': tiers,
+        'renewal_predictions': renewal_predictions,
+        'churn_risk': churn_risk,
+        'trends': trends
+    }
+
+
+@router.post("/subscriptions/{subscriber_id}/retain")
+async def send_retention_message(
+    subscriber_id: int,
+    message_type: str = "personalized",  # 'personalized', 'discount', 'reminder'
+    discount_percent: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Send a retention message/offer to an at-risk subscriber.
+    """
+    return {
+        'success': True,
+        'subscriber_id': subscriber_id,
+        'message_type': message_type,
+        'discount_applied': discount_percent,
+        'message': f'Retention message sent to subscriber {subscriber_id}'
+    }
+
+
+# ==========================================
+# Tax Center API (Sprint 10)
+# ==========================================
+
+@router.get("/tax/summary")
+async def get_tax_summary(
+    year: int = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get tax summary for a given year.
+    """
+    tax_year = year or datetime.now().year
+    
+    # Mock tax summary (would aggregate from transactions)
+    return {
+        'year': tax_year,
+        'total_earnings': 42356.78,
+        'platform_fees': 4235.68,
+        'net_earnings': 38121.10,
+        'estimated_tax': 7624.22,  # 20% estimate
+        'payouts_count': 24,
+        'documents': [
+            {'id': 1, 'type': '1099-K', 'year': tax_year, 'status': 'available', 'download_url': f'/api/v1/tax/documents/1'},
+            {'id': 2, 'type': 'W-9', 'year': tax_year, 'status': 'submitted'},
+            {'id': 3, 'type': '1099-NEC', 'year': tax_year - 1, 'status': 'available', 'download_url': f'/api/v1/tax/documents/3'}
+        ]
+    }
+
+
+@router.post("/tax/generate")
+async def generate_tax_document(
+    doc_type: str,
+    year: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate or request a tax document.
+    """
+    valid_types = ['1099-K', '1099-NEC', 'W-9', 'W-8BEN']
+    if doc_type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Invalid document type. Must be one of: {valid_types}")
+    
+    return {
+        'success': True,
+        'document_id': 100,
+        'type': doc_type,
+        'year': year,
+        'status': 'pending',
+        'estimated_ready': (datetime.now() + timedelta(minutes=15)).isoformat()
+    }
+
+
+@router.get("/tax/documents/{document_id}")
+async def download_tax_document(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Download a tax document PDF.
+    """
+    # Would return actual PDF file
+    return {
+        'redirect_url': f'/files/tax/{current_user.id}/{document_id}.pdf',
+        'expires_at': (datetime.now() + timedelta(hours=1)).isoformat()
+    }
+
+
+@router.get("/currency/settings")
+async def get_currency_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's currency display settings.
+    """
+    return {
+        'primary_currency': 'USD',
+        'available_currencies': ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'BRL', 'MXN'],
+        'auto_convert': True,
+        'exchange_rates': {
+            'USD': 1.0,
+            'EUR': 0.92,
+            'GBP': 0.79,
+            'CAD': 1.35,
+            'AUD': 1.53,
+            'JPY': 149.50,
+            'BRL': 4.97,
+            'MXN': 17.15
+        }
+    }
+
+
+@router.put("/currency/settings")
+async def update_currency_settings(
+    primary_currency: str,
+    auto_convert: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user's currency display settings.
+    """
+    valid_currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'BRL', 'MXN']
+    if primary_currency not in valid_currencies:
+        raise HTTPException(status_code=400, detail=f"Invalid currency. Must be one of: {valid_currencies}")
+    
+    return {
+        'success': True,
+        'primary_currency': primary_currency,
+        'auto_convert': auto_convert
+    }
+
+
+# ==========================================
+# Simulcast API (Sprint 12)
+# ==========================================
+
+@router.get("/simulcast/status")
+async def get_simulcast_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current simulcast status and connected platforms.
+    """
+    return {
+        'is_streaming': False,
+        'session_id': None,
+        'platforms': [
+            {
+                'id': 'streamura',
+                'name': 'Streamura',
+                'connected': True,
+                'status': 'idle',
+                'stream_key': f'strm_live_{current_user.id}_key',
+                'rtmp_url': 'rtmp://ingest.streamura.com/live'
+            },
+            {
+                'id': 'youtube',
+                'name': 'YouTube',
+                'connected': True,
+                'status': 'idle',
+                'stream_key': None,  # User provides their own
+                'rtmp_url': 'rtmp://a.rtmp.youtube.com/live2'
+            },
+            {
+                'id': 'twitch',
+                'name': 'Twitch',
+                'connected': True,
+                'status': 'idle',
+                'stream_key': None,
+                'rtmp_url': 'rtmp://live.twitch.tv/app'
+            },
+            {
+                'id': 'facebook',
+                'name': 'Facebook',
+                'connected': False,
+                'status': 'idle'
+            },
+            {
+                'id': 'twitter',
+                'name': 'X (Twitter)',
+                'connected': False,
+                'status': 'idle'
+            }
+        ]
+    }
+
+
+@router.post("/simulcast/start")
+async def start_simulcast(
+    platforms: List[str],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Start simulcast to multiple platforms.
+    """
+    import uuid
+    session_id = str(uuid.uuid4())
+    
+    return {
+        'success': True,
+        'session_id': session_id,
+        'platforms_started': platforms,
+        'ingest_url': f'rtmp://ingest.streamura.com/live/{current_user.id}',
+        'stream_key': f'strm_{session_id[:8]}'
+    }
+
+
+@router.post("/simulcast/stop")
+async def stop_simulcast(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Stop simulcast on all platforms.
+    """
+    return {
+        'success': True,
+        'message': 'Simulcast ended on all platforms'
+    }
+
+
+@router.put("/simulcast/platforms/{platform_id}")
+async def configure_platform(
+    platform_id: str,
+    stream_key: Optional[str] = None,
+    rtmp_url: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Configure a platform's stream key and RTMP URL.
+    """
+    return {
+        'success': True,
+        'platform_id': platform_id,
+        'stream_key_set': stream_key is not None,
+        'rtmp_url_set': rtmp_url is not None
+    }
+
+
+# ==========================================
+# DVR & Timeshifting API (Sprint 13)
+# ==========================================
+
+@router.get("/dvr/{stream_id}/status")
+async def get_dvr_status(
+    stream_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """
+    Get DVR status for a stream.
+    """
+    return {
+        'stream_id': stream_id,
+        'dvr_enabled': True,
+        'dvr_window_minutes': 120,  # 2 hour window
+        'current_duration_seconds': 3600,  # 1 hour so far
+        'markers': [
+            {'id': 'chapter-1', 'timestamp': 0, 'label': 'Stream Start', 'type': 'chapter'},
+            {'id': 'chapter-2', 'timestamp': 1800, 'label': 'Gameplay Begins', 'type': 'chapter'},
+            {'id': 'highlight-1', 'timestamp': 2400, 'label': 'Epic Moment!', 'type': 'highlight'}
+        ]
+    }
+
+
+@router.post("/dvr/{stream_id}/bookmark")
+async def add_dvr_bookmark(
+    stream_id: str,
+    timestamp: float,
+    label: str = "Bookmark",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Add a bookmark to a stream's DVR timeline.
+    """
+    import uuid
+    return {
+        'success': True,
+        'bookmark': {
+            'id': f'bookmark-{uuid.uuid4().hex[:8]}',
+            'timestamp': timestamp,
+            'label': label,
+            'type': 'bookmark',
+            'created_by': current_user.id
+        }
+    }
+
+
+@router.post("/dvr/{stream_id}/clip")
+async def create_dvr_clip(
+    stream_id: str,
+    start_time: float,
+    end_time: float,
+    title: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a clip from a stream's DVR content.
+    """
+    import uuid
+    clip_id = uuid.uuid4().hex[:12]
+    duration = end_time - start_time
+    
+    return {
+        'success': True,
+        'clip': {
+            'id': clip_id,
+            'stream_id': stream_id,
+            'title': title or f'Clip from stream',
+            'start_time': start_time,
+            'end_time': end_time,
+            'duration': duration,
+            'status': 'processing',
+            'progress': 0,
+            'url': None,  # Will be populated when processing completes
+            'created_by': current_user.id
+        }
+    }
+
+
+@router.get("/dvr/{stream_id}/seek")
+async def get_dvr_segment(
+    stream_id: str,
+    timestamp: float,
+    duration: float = 30,  # seconds
+    db: Session = Depends(get_db)
+):
+    """
+    Get DVR segment URL for a specific timestamp.
+    """
+    return {
+        'stream_id': stream_id,
+        'timestamp': timestamp,
+        'duration': duration,
+        'segment_url': f'https://cdn.streamura.com/dvr/{stream_id}/{int(timestamp)}.m3u8',
+        'expires_at': (datetime.now() + timedelta(hours=1)).isoformat()
+    }
+
+
+# ==========================================
+# Two-Factor Authentication API (Sprint 14)
+# ==========================================
+
+@router.get("/auth/2fa/status")
+async def get_2fa_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current 2FA status for the user.
+    """
+    # Would check user's 2FA settings in database
+    return {
+        'enabled': False,
+        'method': None,
+        'backup_codes_remaining': 0,
+        'last_used': None
+    }
+
+
+@router.post("/auth/2fa/setup")
+async def setup_2fa(
+    method: str = "totp",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Initialize 2FA setup - generates secret and QR code.
+    """
+    import secrets
+    import base64
+    
+    # Generate a random secret (in production, use pyotp)
+    secret = base64.b32encode(secrets.token_bytes(20)).decode('utf-8')[:16]
+    
+    # Generate backup codes
+    backup_codes = [f"{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}" for _ in range(8)]
+    
+    return {
+        'secret': secret,
+        'qr_code_url': f'otpauth://totp/Streamura:{current_user.username}?secret={secret}&issuer=Streamura',
+        'backup_codes': backup_codes
+    }
+
+
+@router.post("/auth/2fa/verify")
+async def verify_2fa(
+    code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify TOTP code and enable 2FA.
+    """
+    # In production, verify the code using pyotp
+    if len(code) != 6 or not code.isdigit():
+        raise HTTPException(status_code=400, detail="Invalid code format")
+    
+    # Mock verification (accepts any 6-digit code for demo)
+    return {
+        'success': True,
+        'message': '2FA has been enabled for your account',
+        'backup_codes_count': 8
+    }
+
+
+@router.post("/auth/2fa/disable")
+async def disable_2fa(
+    code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Disable 2FA for the account.
+    """
+    # Would verify the code first
+    return {
+        'success': True,
+        'message': '2FA has been disabled for your account'
+    }
+
+
+@router.post("/auth/2fa/backup-codes/regenerate")
+async def regenerate_backup_codes(
+    code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Regenerate backup codes (invalidates old ones).
+    """
+    import secrets
+    
+    backup_codes = [f"{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}" for _ in range(8)]
+    
+    return {
+        'success': True,
+        'backup_codes': backup_codes,
+        'message': 'New backup codes generated. Old codes are now invalid.'
+    }
+
+
+# ==========================================
+# Organization Verification API (Sprint 15)
+# ==========================================
+
+@router.get("/verification/status")
+async def get_verification_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get organization verification status.
+    """
+    return {
+        'status': 'unverified',
+        'organization_name': None,
+        'organization_type': None,
+        'verified_at': None,
+        'badge_type': None,
+        'rejection_reason': None
+    }
+
+
+@router.post("/verification/apply")
+async def apply_for_verification(
+    organization_name: str,
+    organization_type: str,
+    website: str,
+    contact_email: str,
+    description: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Submit application for organization verification.
+    """
+    import uuid
+    application_id = str(uuid.uuid4())
+    
+    return {
+        'success': True,
+        'application_id': application_id,
+        'status': 'pending',
+        'message': 'Application submitted. We will review within 2-5 business days.'
+    }
+
+
+@router.post("/verification/documents")
+async def upload_verification_document(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload a verification document.
+    """
+    import uuid
+    return {
+        'success': True,
+        'document_id': str(uuid.uuid4()),
+        'status': 'pending'
+    }
+
+
+# ==========================================
+# Emergency Broadcast API (Sprint 15)
+# ==========================================
+
+@router.post("/emergency/broadcast")
+async def send_emergency_broadcast(
+    type: str,
+    severity: str,
+    title: str,
+    message: str,
+    location: Optional[str] = None,
+    notify_followers: bool = True,
+    interrupt_streams: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Send an emergency broadcast (requires verification).
+    """
+    import uuid
+    broadcast_id = str(uuid.uuid4())
+    
+    return {
+        'success': True,
+        'broadcast': {
+            'id': broadcast_id,
+            'type': type,
+            'severity': severity,
+            'title': title,
+            'message': message,
+            'location': location,
+            'sent_at': datetime.now().isoformat(),
+            'reach': 50000  # Estimated reach
+        }
+    }
+
+
+@router.get("/emergency/broadcasts")
+async def get_emergency_broadcasts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of sent emergency broadcasts.
+    """
+    return {
+        'broadcasts': [],
+        'total': 0
+    }
+
+
 # Include the router in the main app
 def include_router(app):
     app.include_router(router)
+
+

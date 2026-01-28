@@ -1,5 +1,6 @@
-import { User, DollarSign, Trash2 } from 'lucide-react';
+import { User, DollarSign } from 'lucide-react';
 import type { ChatMessage as ChatMessageType } from '@/lib/api';
+import { ChatMessageActionMenu } from './ChatMessageActionMenu';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -7,6 +8,8 @@ interface ChatMessageProps {
   isAdmin?: boolean;
   currentUserId?: number;
   onDelete?: (messageId: number) => void;
+  onTimeout?: (userId: number, username: string) => void;
+  onBan?: (userId: number, username: string) => void;
 }
 
 export function ChatMessage({
@@ -14,10 +17,13 @@ export function ChatMessage({
   isOwner = false,
   isAdmin = false,
   currentUserId,
-  onDelete
+  onDelete,
+  onTimeout,
+  onBan
 }: ChatMessageProps) {
-  const canDelete = isOwner || isAdmin || message.user_id === currentUserId;
   const isOwnMessage = message.user_id === currentUserId;
+  const canModerate = isOwner || isAdmin;
+  const canDelete = isOwner || isAdmin || message.user_id === currentUserId;
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -29,9 +35,8 @@ export function ChatMessage({
 
   return (
     <div
-      className={`group flex gap-2 px-3 py-1.5 hover:bg-slate-700/30 ${
-        message.is_highlighted ? 'bg-yellow-500/10 border-l-2 border-yellow-500' : ''
-      }`}
+      className={`group flex gap-2 px-3 py-1.5 hover:bg-slate-700/30 ${message.is_highlighted ? 'bg-yellow-500/10 border-l-2 border-yellow-500' : ''
+        }`}
     >
       {/* Avatar */}
       <div className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center mt-0.5">
@@ -50,9 +55,8 @@ export function ChatMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span
-            className={`text-sm font-medium ${
-              isOwnMessage ? 'text-primary-400' : 'text-slate-300'
-            }`}
+            className={`text-sm font-medium ${isOwnMessage ? 'text-primary-400' : 'text-slate-300'
+              }`}
           >
             {message.username || 'Anonymous'}
           </span>
@@ -69,15 +73,16 @@ export function ChatMessage({
             {formatTime(message.created_at)}
           </span>
 
-          {/* Delete button */}
-          {canDelete && onDelete && (
-            <button
-              onClick={() => onDelete(message.id)}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-600 transition-opacity"
-              title="Delete message"
-            >
-              <Trash2 className="w-3 h-3 text-slate-400 hover:text-red-400" />
-            </button>
+          {/* Actions Menu */}
+          {(canDelete || canModerate) && (
+            <ChatMessageActionMenu
+              isOwner={isOwner}
+              isAdmin={isAdmin}
+              canDelete={canDelete}
+              onDelete={() => onDelete?.(message.id)}
+              onTimeout={() => message.user_id && message.username && onTimeout?.(message.user_id, message.username)}
+              onBan={() => message.user_id && message.username && onBan?.(message.user_id, message.username)}
+            />
           )}
         </div>
 

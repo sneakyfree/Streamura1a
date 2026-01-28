@@ -10,7 +10,25 @@ import uuid
 from typing import Optional
 from datetime import datetime, timedelta
 
-from livekit import api
+# LiveKit import with demo mode fallback (Gap B3 fix)
+try:
+    from livekit import api
+    LIVEKIT_AVAILABLE = True
+except ImportError:
+    LIVEKIT_AVAILABLE = False
+    # Mock API class for demo mode
+    class api:
+        class VideoGrant:
+            def __init__(self, **kwargs): pass
+        class AccessToken:
+            def __init__(self, api_key, api_secret):
+                self.api_key = api_key
+            def with_grants(self, grants): return self
+            def with_identity(self, identity): return self
+            def with_name(self, name): return self
+            def with_ttl(self, ttl): return self
+            def to_jwt(self): return "demo_token_" + str(uuid.uuid4().hex[:16])
+
 from sqlalchemy.orm import Session
 
 from .models import Stream, User, Recording

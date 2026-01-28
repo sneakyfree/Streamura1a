@@ -10,7 +10,7 @@ import { StreamViewPage } from '@/pages/StreamView';
 import { ProfilePage } from '@/pages/Profile';
 import { GoLivePage } from '@/pages/GoLive';
 import { EventDetailPage } from '@/pages/EventDetail';
-import { AdminDashboard, UserManagement, ReportQueue, ModerationQueue } from '@/pages/admin';
+import { AdminDashboard, UserManagement, ReportQueue, ModerationQueue, TicketScanner, AgentDashboard, HITLQueue, ClusterManagement } from '@/pages/admin';
 import { RecordingPage } from '@/pages/Recording';
 import { AnalyticsPage } from '@/pages/Analytics';
 import { CommunitiesPage } from '@/pages/Communities';
@@ -25,8 +25,16 @@ import { FeedPage } from '@/pages/Feed';
 import { ShopPage } from '@/pages/Shop';
 import { InventoryPage } from '@/pages/Inventory';
 import { SettingsPage } from '@/pages/Settings';
+import PayoutsPage from '@/pages/Payouts';
 import { ForgotPasswordPage } from '@/pages/ForgotPassword';
 import { ResetPasswordPage } from '@/pages/ResetPassword';
+import { AppealsPage } from '@/pages/Appeals';
+import { ContentLicensingPage } from '@/pages/ContentLicensing';
+import { EmergencyBroadcastPage } from '@/pages/EmergencyBroadcast';
+import { KYCVerificationPage } from '@/pages/KYCVerification';
+import { DataExport } from '@/pages/DataExport';
+import { CurrencyShop } from '@/pages/CurrencyShop';
+import { TaxCenter } from '@/pages/TaxCenter';
 import { useAuthStore } from '@/stores/authStore';
 
 const queryClient = new QueryClient({
@@ -78,15 +86,27 @@ function AppContent() {
         {/* Shop routes */}
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/coins" element={<CurrencyShop />} />
 
         {/* Settings */}
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/data-export" element={<DataExport />} />
+        <Route path="/appeals" element={<AppealsPage />} />
+        <Route path="/content-licensing" element={<ContentLicensingPage />} />
+        <Route path="/emergency-broadcast" element={<EmergencyBroadcastPage />} />
+        <Route path="/kyc-verification" element={<KYCVerificationPage />} />
+        <Route path="/payouts" element={<PayoutsPage />} />
+        <Route path="/tax" element={<TaxCenter />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/reports" element={<ReportQueue />} />
         <Route path="/admin/moderation" element={<ModerationQueue />} />
+        <Route path="/admin/tickets" element={<TicketScanner />} />
+        <Route path="/admin/agents" element={<AgentDashboard />} />
+        <Route path="/admin/hitl-queue" element={<HITLQueue />} />
+        <Route path="/admin/clusters" element={<ClusterManagement />} />
 
         {/* Legal/Info routes */}
         <Route path="/about" element={<AboutPage />} />

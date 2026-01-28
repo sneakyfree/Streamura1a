@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 # Configuration
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-PLATFORM_FEE_PERCENT = Decimal("0.30")  # 30% platform fee
-CREATOR_REVENUE_SHARE = Decimal("0.70")  # 70% to creator
+PLATFORM_FEE_PERCENT = Decimal("0.10")  # 10% platform fee (90/10 creator-first split)
+CREATOR_REVENUE_SHARE = Decimal("0.90")  # 90% to creator
 
 # Initialize Stripe
 if STRIPE_SECRET_KEY:

@@ -16,7 +16,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
-from models import (
+from .models import (
     User, ChatMessage, Stream, ContentFilter, ModerationQueueItem,
     StreamModerationSettings, ChatMute, ModerationAction
 )

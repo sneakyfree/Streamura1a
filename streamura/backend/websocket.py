@@ -143,6 +143,8 @@ class ConnectionManager:
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         # WebSocket -> Room mapping for cleanup
         self.connection_rooms: Dict[WebSocket, str] = {}
+        # WebSocket -> User Info mapping
+        self.connection_info: Dict[WebSocket, dict] = {}
         # Redis client (initialized lazily)
         self._redis: Optional[redis.Redis] = None
         self._pubsub_task: Optional[asyncio.Task] = None
@@ -177,13 +179,14 @@ class ConnectionManager:
         except Exception as e:
             print(f"Redis pubsub error: {e}")
 
-    async def connect(self, websocket: WebSocket, room: str):
+    async def connect(self, websocket: WebSocket, room: str, user_info: dict = None):
         """
         Accept a WebSocket connection and add it to a room.
 
         Args:
             websocket: The WebSocket connection
             room: Room identifier (usually stream room name)
+            user_info: Dictionary containing user details (id, username, etc.)
         """
         await websocket.accept()
 
@@ -192,6 +195,9 @@ class ConnectionManager:
 
         self.active_connections[room].add(websocket)
         self.connection_rooms[websocket] = room
+        
+        if user_info:
+            self.connection_info[websocket] = user_info
 
         # Broadcast updated viewer count
         viewer_count = len(self.active_connections[room])
@@ -200,6 +206,14 @@ class ConnectionManager:
             "count": viewer_count,
             "timestamp": datetime.utcnow().isoformat(),
         })
+        
+        # Broadcast user joined if authenticated
+        if user_info and user_info.get("user_id"):
+             await self.broadcast(room, {
+                "type": "user_joined",
+                "user": user_info,
+                "timestamp": datetime.utcnow().isoformat(),
+            })
 
     def disconnect(self, websocket: WebSocket):
         """
@@ -209,12 +223,40 @@ class ConnectionManager:
             websocket: The WebSocket connection to remove
         """
         room = self.connection_rooms.pop(websocket, None)
+        user_info = self.connection_info.pop(websocket, None)
+        
         if room and room in self.active_connections:
             self.active_connections[room].discard(websocket)
 
             # Clean up empty rooms
             if not self.active_connections[room]:
                 del self.active_connections[room]
+            
+            # Broadcast user left if it was an authenticated user
+            if user_info and user_info.get("user_id"):
+                 # We need to broadcast strict user_left event. 
+                 # In a real scalable app, we'd check if user has other connections.
+                 # For now, we just broadcast 'user_left'.
+                 # Note: This is an async call but disconnect is sync. 
+                 # We rely on the fact that ConnectionManager calls are often awaited or we just update state.
+                 # Ideally disconnect should be async or we fire-and-forget.
+                 # Since we can't await here easily without changing signature, we might skip broadcast in disconnect
+                 # OR change disconnect to async. 
+                 pass 
+
+    async def disconnect_async(self, websocket: WebSocket):
+         """Async wrapper for disconnect to allow broadcasting."""
+         room = self.connection_rooms.get(websocket)
+         user_info = self.connection_info.get(websocket)
+         
+         self.disconnect(websocket)
+         
+         if room and user_info and user_info.get("user_id"):
+             await self.broadcast(room, {
+                "type": "user_left",
+                "user_id": user_info["user_id"],
+                "timestamp": datetime.utcnow().isoformat(),
+            })
 
     async def _broadcast_local(self, room: str, message: str):
         """Broadcast message to local connections only."""
@@ -230,7 +272,7 @@ class ConnectionManager:
 
         # Clean up disconnected connections
         for conn in disconnected:
-            self.disconnect(conn)
+            await self.disconnect_async(conn)
 
     async def broadcast(self, room: str, message: dict):
         """
@@ -263,11 +305,26 @@ class ConnectionManager:
         try:
             await websocket.send_json(message)
         except Exception:
-            self.disconnect(websocket)
+            await self.disconnect_async(websocket)
 
     def get_viewer_count(self, room: str) -> int:
         """Get the number of viewers in a room."""
         return len(self.active_connections.get(room, set()))
+    
+    def get_room_users(self, room: str) -> list:
+        """Get list of authenticated users in a room."""
+        if room not in self.active_connections:
+            return []
+        
+        users = []
+        seen_ids = set()
+        for ws in self.active_connections[room]:
+            info = self.connection_info.get(ws)
+            if info and info.get("user_id"):
+                if info["user_id"] not in seen_ids:
+                    users.append(info)
+                    seen_ids.add(info["user_id"])
+        return users
 
     def get_all_rooms(self) -> list:
         """Get list of all active rooms."""
@@ -288,6 +345,8 @@ class MessageType:
     USER_LEFT = "user_left"
     TIP_RECEIVED = "tip_received"
     SYSTEM = "system"
+    CHAT_TYPING = "chat_typing"  # For stream chat
+    
     # Direct messaging types (Phase 12)
     DIRECT_MESSAGE = "direct_message"
     DM_READ_RECEIPT = "dm_read_receipt"
@@ -507,7 +566,15 @@ async def handle_websocket_connection(
     effective_user_id = authenticated_user_id or user_id
     effective_username = authenticated_username
 
-    await manager.connect(websocket, room)
+    # Prepare user info
+    user_info = None
+    if authenticated_user_id:
+        user_info = {
+            "user_id": authenticated_user_id,
+            "username": authenticated_username,
+        }
+
+    await manager.connect(websocket, room, user_info)
 
     # Send connection confirmation with auth status
     await manager.send_personal(websocket, {
@@ -515,6 +582,13 @@ async def handle_websocket_connection(
         "authenticated": authenticated_user_id is not None,
         "user_id": effective_user_id,
         "room": room,
+    })
+    
+    # Send initial user list
+    users = manager.get_room_users(room)
+    await manager.send_personal(websocket, {
+        "type": "user_list",
+        "users": users
     })
 
     try:
@@ -551,19 +625,30 @@ async def handle_websocket_connection(
                         message=message[:500],  # Limit message length
                         is_authenticated=authenticated_user_id is not None,
                     )
+            
+            elif message_type == "typing":
+                # Handle typing indicator
+                if authenticated_user_id: # Only authenticated users can trigger typing
+                    is_typing = data.get("is_typing", True)
+                    await manager.broadcast(room, {
+                         "type": MessageType.CHAT_TYPING,
+                         "user_id": authenticated_user_id,
+                         "username": authenticated_username,
+                         "is_typing": is_typing
+                    })
 
             elif message_type == "ping":
                 # Keep-alive ping
                 await manager.send_personal(websocket, {"type": "pong"})
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        await manager.disconnect_async(websocket)
         # Broadcast updated viewer count
         viewer_count = manager.get_viewer_count(room)
         await broadcast_viewer_count(room, viewer_count)
     except Exception as e:
         print(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
+        await manager.disconnect_async(websocket)
 
 
 # =============================================================================
