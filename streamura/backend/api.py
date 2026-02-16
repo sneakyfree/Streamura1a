@@ -24,6 +24,7 @@ from .auth import (
     migrate_anonymous_to_registered,
     generate_auth_tokens,
     refresh_access_token,
+    get_current_user,
     get_current_active_user,
     get_current_user_optional,
     get_current_admin_user,
