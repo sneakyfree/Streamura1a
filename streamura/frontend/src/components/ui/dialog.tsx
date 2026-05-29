@@ -9,6 +9,15 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange?.(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onOpenChange]);
+
   if (!open) return null;
 
   return (
@@ -35,6 +44,8 @@ export function DialogContent({
 }: DialogContentProps) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className={cn(
         'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
         'w-full max-w-lg',

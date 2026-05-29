@@ -20,7 +20,7 @@ const dataExportApi = {
     requestExport: async (exportType: string, includePrivate: boolean) => {
         const res = await fetch(`/api/v1/user/data-export/request?export_type=${exportType}&include_private=${includePrivate}`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
         if (!res.ok) throw new Error('Failed to request export');
         return res.json();
@@ -28,7 +28,7 @@ const dataExportApi = {
 
     getHistory: async () => {
         const res = await fetch('/api/v1/user/data-export/history', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
         if (!res.ok) throw new Error('Failed to fetch history');
         return res.json();
@@ -36,7 +36,7 @@ const dataExportApi = {
 
     getStatus: async (requestId: number) => {
         const res = await fetch(`/api/v1/user/data-export/status/${requestId}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
         if (!res.ok) throw new Error('Failed to fetch status');
         return res.json();
@@ -44,7 +44,7 @@ const dataExportApi = {
 
     getDeletionCode: async () => {
         const res = await fetch('/api/v1/user/account/deletion-code', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
         if (!res.ok) throw new Error('Failed to get deletion code');
         return res.json();
@@ -54,7 +54,7 @@ const dataExportApi = {
         const res = await fetch('/api/v1/user/account', {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ confirmation_code: confirmationCode, reason })

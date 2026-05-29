@@ -58,6 +58,7 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+        <h1 className="sr-only">{t('auth.resetPassword.heading', 'Reset password')}</h1>
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
@@ -82,6 +83,7 @@ export function ResetPasswordPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+        <h1 className="sr-only">{t('auth.resetPassword.heading', 'Reset password')}</h1>
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
@@ -104,6 +106,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+      <h1 className="sr-only">{t('auth.resetPassword.heading', 'Reset password')}</h1>
       {/* Language selector */}
       <div className="absolute top-4 right-4">
         <LanguageSelector />

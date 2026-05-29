@@ -112,6 +112,7 @@ export function AnalyticsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -135,7 +136,7 @@ export function AnalyticsPage() {
     };
 
     fetchData();
-  }, [period]);
+  }, [period, user]);
 
   // Fetch optimal streaming times
   useEffect(() => {
@@ -161,7 +162,7 @@ export function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Please sign in</h2>
+          <h1 className="text-xl font-semibold text-white mb-2">Please sign in</h1>
           <Link to="/login">
             <Button>Sign In</Button>
           </Link>
@@ -174,6 +175,7 @@ export function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-slate-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="sr-only">Analytics</h1>
           <Skeleton className="h-8 w-48 mb-6" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[...Array(4)].map((_, i) => (

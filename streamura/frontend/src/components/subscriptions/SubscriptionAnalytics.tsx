@@ -70,7 +70,7 @@ const fetchAnalytics = async (creatorId?: number) => {
     if (creatorId) params.set('creator_id', creatorId.toString());
 
     const res = await fetch(`/api/v1/subscriptions/analytics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch analytics');
     return res.json();

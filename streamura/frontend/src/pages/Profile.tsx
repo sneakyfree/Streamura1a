@@ -38,7 +38,7 @@ export function ProfilePage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Please sign in</h2>
+          <h1 className="text-xl font-semibold text-white mb-2">Please sign in</h1>
           <p className="text-slate-400 mb-4">You need to be logged in to view your profile.</p>
           <Link to="/login">
             <Button>Sign In</Button>

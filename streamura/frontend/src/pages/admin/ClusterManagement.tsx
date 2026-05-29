@@ -64,7 +64,7 @@ interface ClusterManagementProps {
 // Fetch clusters with admin data
 const fetchClusters = async () => {
     const res = await fetch('/api/v1/admin/clusters', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch clusters');
     return res.json();
@@ -337,7 +337,7 @@ export function ClusterManagement({ maxClusters = 100 }: ClusterManagementProps)
             const res = await fetch(`/api/v1/admin/clusters/${clusterId}/rename`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ name })
@@ -353,7 +353,7 @@ export function ClusterManagement({ maxClusters = 100 }: ClusterManagementProps)
             const res = await fetch(`/api/v1/admin/clusters/merge`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ source_cluster_id: sourceId, target_cluster_id: targetId, new_name: name })
@@ -431,6 +431,7 @@ export function ClusterManagement({ maxClusters = 100 }: ClusterManagementProps)
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64 text-slate-400">
+                <h1 className="sr-only">Cluster Management</h1>
                 <RefreshCw className="w-6 h-6 animate-spin mr-2" />
                 Loading clusters...
             </div>

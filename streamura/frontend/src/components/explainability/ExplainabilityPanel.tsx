@@ -74,7 +74,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
         setError(null);
 
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('access_token');
             let endpoint = '';
 
             if (decisionType === 'moderation') {

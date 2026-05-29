@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Bell, Check, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { NotificationItem } from '@/components/notifications';
 import { notificationApi } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '@/types';
 
 const filterOptions = [
@@ -17,6 +19,7 @@ const filterOptions = [
 ];
 
 export function NotificationsPage() {
+  const { isAuthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +30,7 @@ export function NotificationsPage() {
 
   // Fetch notifications
   const fetchNotifications = async (pageNum: number = 1) => {
+    if (!isAuthenticated) { setIsLoading(false); return; }
     try {
       setIsLoading(true);
       const data = await notificationApi.getAll();
@@ -45,7 +49,21 @@ export function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [isAuthenticated]);
+
+  // Anonymous sign-in prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <Bell className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+          <h1 className="text-xl font-semibold text-white mb-2">Sign in to see your notifications</h1>
+          <p className="text-slate-400 mb-4">Tips, follows, stream alerts and community pings live here.</p>
+          <Link to="/login"><Button>Sign In</Button></Link>
+        </div>
+      </div>
+    );
+  }
 
   // Apply filter
   useEffect(() => {

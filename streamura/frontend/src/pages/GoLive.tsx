@@ -180,7 +180,7 @@ export function GoLivePage() {
         <Card className="w-full max-w-md" variant="elevated">
           <CardContent className="py-8 text-center">
             <Video className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">Sign in to Go Live</h2>
+            <h1 className="text-xl font-semibold text-white mb-2">Sign in to Go Live</h1>
             <p className="text-slate-400 mb-6">
               You need to be logged in to start streaming.
             </p>

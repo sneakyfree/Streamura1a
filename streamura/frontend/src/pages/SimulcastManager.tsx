@@ -60,7 +60,7 @@ const platformIcons: Record<string, React.ElementType> = {
 // Fetch simulcast data
 const fetchSimulcastData = async () => {
     const res = await fetch('/api/v1/simulcast/status', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch simulcast data');
     return res.json();
@@ -214,7 +214,7 @@ export function SimulcastManager() {
             const res = await fetch('/api/v1/simulcast/start', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ platforms: platformIds })
@@ -231,7 +231,7 @@ export function SimulcastManager() {
         mutationFn: async () => {
             const res = await fetch('/api/v1/simulcast/stop', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
             });
             return res.json();
         },

@@ -1,3 +1,18 @@
 node_modules/
 .next/
 *.log
+
+# Python build artifacts
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Local dev SQLite database (regenerate with ./demo-reset.sh)
+*.db
+streamura/streamura.db
+
+# Playwright / E2E output
+test-results/
+e2e-report/
+playwright-report/

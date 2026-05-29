@@ -46,7 +46,7 @@ export const BlockersUnlockers: React.FC<BlockersUnlockersProps> = ({ className 
     const fetchBlockers = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE}/users/me/blockers`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -78,6 +78,7 @@ export function RecordingPage() {
     return (
       <div className="min-h-screen bg-slate-900 py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="sr-only">Loading recording</h1>
           <Skeleton className="h-8 w-48 mb-6" />
           <Skeleton className="aspect-video w-full mb-6 rounded-lg" />
           <Skeleton className="h-6 w-64 mb-4" />
@@ -92,9 +93,9 @@ export function RecordingPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">
+          <h1 className="text-xl font-semibold text-white mb-2">
             {error || 'Recording not found'}
-          </h2>
+          </h1>
           <Link to="/">
             <Button variant="secondary">Go Home</Button>
           </Link>

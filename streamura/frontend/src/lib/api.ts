@@ -1530,8 +1530,9 @@ export const virtualGoodsApi = {
     limit?: number;
     offset?: number;
   } = {}): Promise<VirtualGood[]> => {
-    const response = await api.get<VirtualGood[]>('/virtual-goods', { params });
-    return response.data;
+    const response = await api.get<VirtualGood[] | { goods: VirtualGood[] }>('/virtual-goods', { params });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.goods ?? []);
   },
 
   get: async (goodId: number): Promise<VirtualGood> => {

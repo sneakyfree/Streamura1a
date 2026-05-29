@@ -96,6 +96,7 @@ export function CommunityDetailPage() {
   if (loadingCommunity) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <h1 className="sr-only">Loading community</h1>
         <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
       </div>
     );
@@ -104,7 +105,7 @@ export function CommunityDetailPage() {
   if (!community) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center">
-        <h2 className="text-xl font-bold text-white mb-4">Community not found</h2>
+        <h1 className="text-xl font-bold text-white mb-4">Community not found</h1>
         <Button onClick={() => navigate('/communities')}>
           Back to Communities
         </Button>

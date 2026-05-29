@@ -18,6 +18,12 @@ export function FeedPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchStreams = async () => {
+    // Don't hit the auth-gated endpoint when the user isn't logged in.
+    if (activeTab === 'following' && !isAuthenticated) {
+      setIsLoading(false);
+      setStreams([]);
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -39,7 +45,7 @@ export function FeedPage() {
 
   useEffect(() => {
     fetchStreams();
-  }, [activeTab]);
+  }, [activeTab, isAuthenticated]);
 
   // Redirect to discover if not authenticated
   if (!isAuthenticated && activeTab === 'following') {
@@ -48,7 +54,7 @@ export function FeedPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center py-16">
             <Users className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Sign in to see your feed</h2>
+            <h1 className="text-2xl font-bold text-white mb-2">Sign in to see your feed</h1>
             <p className="text-slate-400 mb-6">
               Follow your favorite creators to see their streams here.
             </p>

@@ -7,10 +7,28 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { payoutApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { RevenueShareBanner } from '@/components/payments/RevenueShareBanner';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function PayoutsPage() {
     const queryClient = useQueryClient();
     const [isRequesting, setIsRequesting] = useState(false);
+    const { isAuthenticated } = useAuthStore();
+
+    // Friendly auth gate before any backend call
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="text-center max-w-md px-6">
+                    <DollarSign className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+                    <h1 className="text-xl font-semibold text-white mb-2">Sign in to view your payouts</h1>
+                    <p className="text-slate-400 mb-4">Your earnings, payout history, and instant payout options live here.</p>
+                    <Link to="/login">
+                        <Button>Sign In</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // Fetch earnings summary
     const { data: earnings, isLoading: earningsLoading, error: earningsError, refetch } = useQuery({
@@ -54,6 +72,7 @@ export default function PayoutsPage() {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <h1 className="sr-only">Payouts</h1>
                 <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
                 <span className="ml-3 text-slate-400">Loading earnings...</span>
             </div>
@@ -66,7 +85,7 @@ export default function PayoutsPage() {
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-white mb-2">Failed to load earnings</h2>
+                    <h1 className="text-xl font-semibold text-white mb-2">Failed to load earnings</h1>
                     <p className="text-slate-400 mb-4">Please try again later</p>
                     <Button onClick={() => refetch()}>Try Again</Button>
                 </div>

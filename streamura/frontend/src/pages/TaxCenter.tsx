@@ -47,7 +47,7 @@ interface CurrencySettings {
 // Fetch tax data
 const fetchTaxData = async () => {
     const res = await fetch('/api/v1/tax/summary', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch tax data');
     return res.json();
@@ -142,7 +142,7 @@ export function TaxCenter() {
             const res = await fetch('/api/v1/tax/generate', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ type: docType, year: selectedYear })
@@ -189,6 +189,7 @@ export function TaxCenter() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64 text-slate-400">
+                <h1 className="sr-only">Tax Center</h1>
                 <RefreshCw className="h-6 w-6 animate-spin mr-2" />
                 Loading tax information...
             </div>

@@ -30,11 +30,13 @@ import { ForgotPasswordPage } from '@/pages/ForgotPassword';
 import { ResetPasswordPage } from '@/pages/ResetPassword';
 import { AppealsPage } from '@/pages/Appeals';
 import { ContentLicensingPage } from '@/pages/ContentLicensing';
-import { EmergencyBroadcastPage } from '@/pages/EmergencyBroadcast';
+import EmergencyBroadcastPage from '@/pages/EmergencyBroadcast';
 import { KYCVerificationPage } from '@/pages/KYCVerification';
 import { DataExport } from '@/pages/DataExport';
 import { CurrencyShop } from '@/pages/CurrencyShop';
 import { TaxCenter } from '@/pages/TaxCenter';
+import { PricingPage } from '@/pages/Pricing';
+import { SitemapPage } from '@/pages/Sitemap';
 import { useAuthStore } from '@/stores/authStore';
 
 const queryClient = new QueryClient({
@@ -110,9 +112,14 @@ function AppContent() {
 
         {/* Legal/Info routes */}
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/features" element={<AboutPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/guidelines" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/cookies" element={<PrivacyPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/sitemap" element={<SitemapPage />} />
       </Route>
     </Routes>
   );

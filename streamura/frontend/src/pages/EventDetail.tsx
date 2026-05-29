@@ -43,6 +43,7 @@ export function EventDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <h1 className="sr-only">Loading event</h1>
         <Loader2 className="h-8 w-8 text-primary-500 animate-spin" />
       </div>
     );

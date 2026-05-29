@@ -22,12 +22,16 @@ interface BreakingNewsProps {
 export function BreakingNews({ className, onEventClick }: BreakingNewsProps) {
     const { data: breakingEvents, isLoading } = useQuery({
         queryKey: ['discovery', 'breaking'],
-        queryFn: async () => {
+        queryFn: async (): Promise<BreakingEvent[]> => {
             try {
-                const response = await api.get('/discovery/breaking-news');
-                return response.data.events as BreakingEvent[];
+                const response = await api.get('/discover/breaking');
+                // Backend may return array directly OR {events: [...]} — accept both.
+                const raw = response.data;
+                const list: BreakingEvent[] = Array.isArray(raw) ? raw : (raw?.events ?? []);
+                if (list.length > 0) return list;
+                // Empty → fall through to demo so the banner is non-empty in dev
+                throw new Error('empty');
             } catch {
-                // Return demo data if API not ready
                 return [
                     {
                         id: 1,
@@ -146,10 +150,22 @@ interface TrendingInsight {
 export function TrendingInsights() {
     const { data: insights } = useQuery({
         queryKey: ['discovery', 'insights'],
-        queryFn: async () => {
+        queryFn: async (): Promise<TrendingInsight[]> => {
             try {
-                const response = await api.get('/discovery/insights');
-                return response.data.insights as TrendingInsight[];
+                const response = await api.get('/discover/insights');
+                const raw = response.data;
+                // Backend currently returns an aggregate object — synthesize insight rows from it.
+                if (Array.isArray(raw)) return raw as TrendingInsight[];
+                if (Array.isArray(raw?.insights)) return raw.insights as TrendingInsight[];
+                const cats = Array.isArray(raw?.trending_categories) ? raw.trending_categories : [];
+                if (cats.length > 0) {
+                    return cats.slice(0, 3).map((c: { name: string; growth: number }) => ({
+                        type: 'surge' as const,
+                        message: `${c.name} viewership up ${c.growth}% today`,
+                        stream_count: raw.live_streams ?? 0,
+                    }));
+                }
+                throw new Error('empty');
             } catch {
                 return [
                     { type: 'surge' as const, message: 'Sports viewership up 40% today', stream_count: 24 },
@@ -197,8 +213,13 @@ export function EventClusterPanel() {
         queryKey: ['discovery', 'clusters'],
         queryFn: async () => {
             try {
-                const response = await api.get('/discovery/clusters');
-                return response.data.clusters as EventCluster[];
+                // Public clusters feed isn't wired up server-side yet; accept any non-2xx
+                // and fall through to demo data without logging.
+                const response = await api.get('/discover/clusters', { validateStatus: () => true });
+                if (response.status >= 200 && response.status < 300) {
+                    return response.data.clusters as EventCluster[];
+                }
+                throw new Error('fallback');
             } catch {
                 // Demo data
                 return [

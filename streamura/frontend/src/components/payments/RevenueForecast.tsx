@@ -68,7 +68,7 @@ const fetchForecast = async (creatorId?: number, months?: number) => {
     if (months) params.set('months', months.toString());
 
     const res = await fetch(`/api/v1/revenue/forecast?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch forecast');
     return res.json();

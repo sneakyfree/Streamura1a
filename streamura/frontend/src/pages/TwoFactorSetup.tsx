@@ -35,7 +35,7 @@ interface TwoFactorSetup {
 // Fetch 2FA status
 const fetch2FAStatus = async () => {
     const res = await fetch('/api/v1/auth/2fa/status', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch 2FA status');
     return res.json();
@@ -58,7 +58,7 @@ export function TwoFactorSetup() {
         mutationFn: async () => {
             const res = await fetch('/api/v1/auth/2fa/setup', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
             });
             return res.json();
         },
@@ -70,7 +70,7 @@ export function TwoFactorSetup() {
             const res = await fetch('/api/v1/auth/2fa/verify', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ code })
@@ -90,7 +90,7 @@ export function TwoFactorSetup() {
             const res = await fetch('/api/v1/auth/2fa/disable', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ code })

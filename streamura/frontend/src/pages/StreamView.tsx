@@ -23,6 +23,7 @@ export function StreamViewPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <h1 className="sr-only">Loading stream</h1>
         <Loader2 className="h-8 w-8 text-primary-500 animate-spin" />
       </div>
     );
@@ -32,7 +33,7 @@ export function StreamViewPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Stream not found</h2>
+          <h1 className="text-xl font-semibold text-white mb-2">Stream not found</h1>
           <p className="text-slate-400 mb-4">This stream may have ended or doesn't exist.</p>
           <Link to="/discover">
             <Button>Back to Discover</Button>

@@ -18,22 +18,39 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 
 export function AdminDashboard() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
 
   const { data: stats, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: adminApi.getStats,
     refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: !!user?.is_admin,
   });
 
-  // Check if user is admin
+  // Anonymous visitors: prompt sign-in instead of scary "Access Denied"
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <Shield className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+          <h1 className="text-xl font-semibold text-white mb-2">Sign in to continue</h1>
+          <p className="text-slate-400 mb-4">The admin console requires an authenticated account.</p>
+          <Link to="/login">
+            <Button>Sign In</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated non-admins: real access denied
   if (!user?.is_admin) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">Access Denied</h2>
+          <h1 className="text-xl font-semibold text-white mb-2">Access Denied</h1>
           <p className="text-slate-400 mb-4">You don't have permission to access this page.</p>
           <Link to="/">
             <Button>Go Home</Button>

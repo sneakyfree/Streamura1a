@@ -64,7 +64,7 @@ const fetchClusters = async (bounds?: { north: number; south: number; east: numb
     }
 
     const res = await fetch(`/api/v1/events/clusters?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch clusters');
     return res.json();

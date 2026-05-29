@@ -100,12 +100,23 @@ export function AgentDashboard() {
         },
     });
 
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="text-center max-w-md px-6">
+                    <Shield className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+                    <h1 className="text-xl font-semibold text-white mb-2">Sign in to continue</h1>
+                    <p className="text-slate-400">The agent dashboard requires an authenticated admin.</p>
+                </div>
+            </div>
+        );
+    }
     if (!user?.is_admin) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="text-center">
                     <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-white mb-2">Access Denied</h2>
+                    <h1 className="text-xl font-semibold text-white mb-2">Access Denied</h1>
                     <p className="text-slate-400">Admin privileges required.</p>
                 </div>
             </div>

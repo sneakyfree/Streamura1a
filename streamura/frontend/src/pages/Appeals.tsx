@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+// Use relative URLs so the Vite dev proxy forwards to the backend.
+const API_BASE = '';
 
 interface Appeal {
     id: number;

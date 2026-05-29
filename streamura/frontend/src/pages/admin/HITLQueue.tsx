@@ -48,7 +48,7 @@ const hitlApi = {
         if (params.offset) searchParams.set('offset', params.offset.toString());
 
         const response = await fetch(`/api/v1/admin/hitl/queue?${searchParams}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!response.ok) throw new Error('Failed to fetch HITL queue');
         return response.json();
@@ -57,7 +57,7 @@ const hitlApi = {
     assignItem: async (queueId: number) => {
         const response = await fetch(`/api/v1/admin/hitl/queue/${queueId}/assign`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!response.ok) throw new Error('Failed to assign item');
         return response.json();
@@ -67,7 +67,7 @@ const hitlApi = {
         const response = await fetch(`/api/v1/admin/hitl/decisions/${decisionId}/approve`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ notes }),
@@ -80,7 +80,7 @@ const hitlApi = {
         const response = await fetch(`/api/v1/admin/hitl/decisions/${decisionId}/reject`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ notes }),
@@ -92,7 +92,7 @@ const hitlApi = {
     executeDecision: async (decisionId: number) => {
         const response = await fetch(`/api/v1/admin/hitl/decisions/${decisionId}/execute`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!response.ok) throw new Error('Failed to execute decision');
         return response.json();
@@ -105,7 +105,7 @@ const hitlApi = {
         if (params.offset) searchParams.set('offset', params.offset.toString());
 
         const response = await fetch(`/api/v1/admin/hitl/audit-trail?${searchParams}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
         });
         if (!response.ok) throw new Error('Failed to fetch audit trail');
         return response.json();
@@ -282,13 +282,23 @@ export function HITLQueue() {
         return `${minutes}m`;
     };
 
-    // Check if user is admin
+    if (!currentUser) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="text-center max-w-md px-6">
+                    <Shield className="h-12 w-12 text-primary-500 mx-auto mb-4" />
+                    <h1 className="text-xl font-semibold text-white mb-2">Sign in to continue</h1>
+                    <p className="text-slate-400">The HITL queue requires an authenticated admin.</p>
+                </div>
+            </div>
+        );
+    }
     if (!currentUser?.is_admin) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="text-center">
                     <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-white mb-2">Access Denied</h2>
+                    <h1 className="text-xl font-semibold text-white mb-2">Access Denied</h1>
                     <p className="text-slate-400">You don't have permission to access this page.</p>
                 </div>
             </div>

@@ -187,32 +187,44 @@ def authenticate_user(db: Session, identifier: str, password: str):
     return user
 
 def create_user(db: Session, user_data: UserCreate):
-    """Create a new user"""
-    # Check if user already exists
-    existing_user = (
-        db.query(User)
-        .filter(
-            (User.email == user_data.email) |
-            (User.phone_number == user_data.phone_number) |
-            (User.username == user_data.username)
-        )
-        .first()
-    )
+    """Create a new user.
 
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="User with this email, phone, or username already exists"
-        )
+    Only compare identifiers that the new user actually provided. Comparing
+    empty phone_number against existing users with empty phone caused
+    false-positive collisions that blocked every phone-less registration.
+    """
+    from sqlalchemy import or_
+    conditions = []
+    if user_data.email:
+        conditions.append(User.email == user_data.email)
+    if user_data.phone_number:  # only check when non-empty
+        conditions.append(User.phone_number == user_data.phone_number)
+    if user_data.username:
+        conditions.append(User.username == user_data.username)
+
+    if conditions:
+        existing_user = db.query(User).filter(or_(*conditions)).first()
+        if existing_user:
+            collision = (
+                "email" if existing_user.email == user_data.email
+                else "username" if existing_user.username == user_data.username
+                else "phone number"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"A user with this {collision} already exists"
+            )
 
     # Hash password
     hashed_password = get_password_hash(user_data.password)
 
-    # Create user
+    # Normalize empty strings to NULL so the UNIQUE constraint on phone_number
+    # doesn't reject the second phone-less registration.
+    phone = user_data.phone_number.strip() if user_data.phone_number else ""
     db_user = User(
         username=user_data.username,
         email=user_data.email,
-        phone_number=user_data.phone_number,
+        phone_number=phone or None,
         hashed_password=hashed_password,
         is_verified=False
     )

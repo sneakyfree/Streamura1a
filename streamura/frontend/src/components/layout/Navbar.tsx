@@ -18,6 +18,15 @@ export function Navbar() {
     navigate('/');
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q.length === 0) return;
+    navigate(`/discover?q=${encodeURIComponent(q)}`);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <nav className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -58,16 +67,19 @@ export function Navbar() {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-8" role="search">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
-                type="text"
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search events, streams..."
+                aria-label="Search events, streams"
                 className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
-          </div>
+          </form>
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-4">
@@ -125,14 +137,17 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-800">
           <div className="px-4 py-4 space-y-4">
-            <div className="relative">
+            <form onSubmit={handleSearchSubmit} className="relative" role="search">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
-                type="text"
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search events, streams..."
+                aria-label="Search events, streams"
                 className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400"
               />
-            </div>
+            </form>
             <div className="flex flex-col gap-2">
               <Link
                 to="/discover"

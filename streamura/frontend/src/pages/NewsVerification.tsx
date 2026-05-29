@@ -39,7 +39,7 @@ interface VerificationDocument {
 // Fetch verification status
 const fetchVerificationStatus = async () => {
     const res = await fetch('/api/v1/verification/status', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch status');
     return res.json();
@@ -86,7 +86,7 @@ export function NewsVerification() {
             const res = await fetch('/api/v1/verification/apply', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
@@ -105,7 +105,7 @@ export function NewsVerification() {
             formData.append('document', file);
             const res = await fetch('/api/v1/verification/documents', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
                 body: formData
             });
             return res.json();

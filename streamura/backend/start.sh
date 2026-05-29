@@ -19,9 +19,11 @@ if [ -z "$JWT_SECRET" ] || [ ${#JWT_SECRET} -lt 32 ]; then
     export JWT_SECRET="streamura_super_secure_jwt_secret_key_2026_production_ready"
 fi
 
-# Set PYTHONPATH to parent directory for package imports
+# Set PYTHONPATH to BOTH parent (for "backend.x" package imports) and
+# backend/ itself (for bare "from ranking import X" calls scattered through api.py).
+BACKEND_DIR="$(pwd)"
 cd ..
-export PYTHONPATH="$(pwd)"
+export PYTHONPATH="$(pwd):$BACKEND_DIR"
 
 # Start from parent directory as package
 PORT=${PORT:-8001}

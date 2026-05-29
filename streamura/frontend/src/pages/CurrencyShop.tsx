@@ -55,7 +55,7 @@ interface PurchaseHistory {
 // Fetch data
 const fetchPacks = async () => {
     const res = await fetch('/api/v1/currency/packs', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed');
     return res.json();
@@ -63,7 +63,7 @@ const fetchPacks = async () => {
 
 const fetchBalance = async () => {
     const res = await fetch('/api/v1/currency/balance', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed');
     return res.json();
@@ -302,7 +302,7 @@ export function CurrencyShop() {
             const res = await fetch('/api/v1/currency/purchase', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ pack_id: packId })

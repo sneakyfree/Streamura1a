@@ -2798,13 +2798,13 @@ async def get_payout_earnings(
     
     # Calculate total earnings from tips where user is the creator
     tips_total = db.query(func.coalesce(func.sum(Tip.amount), 0)).filter(
-        Tip.creator_id == current_user.id,
+        Tip.to_user_id == current_user.id,
         Tip.status == "completed"
     ).scalar() or 0
     
     # Get pending tips
     pending = db.query(func.coalesce(func.sum(Tip.amount), 0)).filter(
-        Tip.creator_id == current_user.id,
+        Tip.to_user_id == current_user.id,
         Tip.status == "pending"
     ).scalar() or 0
     
@@ -6151,7 +6151,7 @@ async def get_stream_predictions(
     db: Session = Depends(get_db)
 ):
     """Get predictions that were made for a specific stream."""
-    from models import MLPrediction
+    from backend.models import MLPrediction
 
     # Verify stream belongs to user or user is admin
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
@@ -6236,7 +6236,7 @@ async def submit_prediction_feedback(
     a stream ends, enabling accuracy tracking.
     """
     from ml.predictor import StreamSuccessPredictor
-    from models import MLPrediction
+    from backend.models import MLPrediction
 
     # Verify prediction exists and belongs to user
     prediction = db.query(MLPrediction).filter(
@@ -6303,7 +6303,7 @@ async def get_creator_performance_history(
     db: Session = Depends(get_db)
 ):
     """Get historical performance data for the current creator."""
-    from models import CreatorPerformanceHistory
+    from backend.models import CreatorPerformanceHistory
 
     if period_type not in ['daily', 'weekly', 'monthly']:
         raise HTTPException(status_code=400, detail="Invalid period_type. Must be daily, weekly, or monthly")
@@ -7075,6 +7075,32 @@ async def get_trending_insights(
     }
 
 
+# Public, low-fidelity cluster summary for Discover page.
+# Mirrors the admin /admin/clusters shape but returns only safe public fields.
+@router.get("/discover/clusters", tags=["Discovery"])
+async def get_public_clusters(db: Session = Depends(get_db)):
+    """Public-facing event cluster summary for the Discover page."""
+    try:
+        from backend.clustering import EventClusteringService
+        service = EventClusteringService(db)
+        raw = service.get_clusters(limit=20) if hasattr(service, "get_clusters") else []
+    except Exception:
+        raw = []
+    clusters = []
+    for c in raw or []:
+        clusters.append({
+            "cluster_id": str(getattr(c, "cluster_id", getattr(c, "id", ""))),
+            "name": getattr(c, "title", getattr(c, "name", "Event Cluster")),
+            "description": getattr(c, "description", ""),
+            "event_count": getattr(c, "stream_count", 0),
+            "total_viewers": getattr(c, "total_viewers", 0),
+            "top_event_id": getattr(c, "event_id", None),
+            "category": getattr(c, "category", None),
+            "growth_rate": int(getattr(c, "velocity", 0) or 0),
+        })
+    return {"clusters": clusters}
+
+
 # =============================================================================
 # AGENT LIVE STATUS API (Gap G13)
 # =============================================================================
@@ -7562,7 +7588,7 @@ async def analyze_video_frame(
 
 def get_data_export_service(db: Session):
     """Get or create DataExportService instance."""
-    from data_export import DataExportService
+    from backend.data_export import DataExportService
     return DataExportService(db)
 
 
@@ -7574,7 +7600,7 @@ async def request_data_export(
     db: Session = Depends(get_db)
 ):
     """Request a GDPR-compliant data export."""
-    from data_export import ExportType
+    from backend.data_export import ExportType
     
     try:
         exp_type = ExportType(export_type)
@@ -7687,7 +7713,7 @@ async def get_deletion_code(
 
 def get_emergency_service(db: Session):
     """Get or create EmergencyService instance."""
-    from emergency import EmergencyService
+    from backend.emergency import EmergencyService
     return EmergencyService(db)
 
 
@@ -7738,7 +7764,7 @@ async def create_emergency_contact(
     db: Session = Depends(get_db)
 ):
     """Create an emergency contact request."""
-    from emergency import EmergencyType, EmergencySeverity
+    from backend.emergency import EmergencyType, EmergencySeverity
     
     try:
         emergency_type = EmergencyType(request.emergency_type)
@@ -7783,7 +7809,7 @@ async def get_emergency_queue(
     db: Session = Depends(get_db)
 ):
     """Get open emergencies for safety team (admin only)."""
-    from emergency import EmergencySeverity
+    from backend.emergency import EmergencySeverity
     
     severity_filter = None
     if severity:
@@ -7889,13 +7915,13 @@ async def get_emergency_stats(
 
 def get_clustering_service(db: Session):
     """Get or create EventClusteringService instance."""
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     return EventClusteringService(db)
 
 
 def get_ranking_service(db: Session):
     """Get or create EventRankingService instance."""
-    from ranking import EventRankingService
+    from backend.ranking import EventRankingService
     return EventRankingService(db)
 
 
@@ -7914,8 +7940,8 @@ async def get_event_clusters(
     
     Returns clusters with their streams, velocity data, and trending status.
     """
-    from clustering import EventClusteringService
-    from ranking import EventRankingService
+    from backend.clustering import EventClusteringService
+    from backend.ranking import EventRankingService
     
     clustering_service = EventClusteringService(db)
     ranking_service = EventRankingService(db)
@@ -8007,7 +8033,7 @@ async def get_event_velocity(
     
     Returns current velocity and historical velocity data points.
     """
-    from ranking import EventRankingService
+    from backend.ranking import EventRankingService
     from datetime import timedelta
     
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -8070,7 +8096,7 @@ async def get_trending_events(
     """
     Get trending events sorted by velocity and engagement.
     """
-    from ranking import EventRankingService
+    from backend.ranking import EventRankingService
     
     ranking_service = EventRankingService(db)
     trending_events = ranking_service.get_trending_events(limit=limit, category=category)
@@ -8123,7 +8149,7 @@ async def get_agent_metrics(
     Returns decision counts, approval rates, success rates, and performance data.
     """
     from datetime import timedelta
-    from agentic import AgentType
+    from backend.agentic import AgentType
     
     # Calculate time window
     time_windows = {
@@ -8296,7 +8322,7 @@ async def get_trust_breakdown_for_user(user_id: int, db: Session, is_own: bool =
     """
     Generate a comprehensive trust breakdown for a user.
     """
-    from trust_score import TrustScoreService
+    from backend.trust_score import TrustScoreService
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -8413,7 +8439,7 @@ async def get_admin_clusters(
     """
     Get all clusters with admin details for cluster management.
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     clusters = clustering_service.get_active_clusters()
@@ -8463,7 +8489,7 @@ async def rename_cluster(
     """
     Rename a cluster (admin override of AI-suggested name).
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     success = clustering_service.rename_cluster(cluster_id, name, renamed_by=current_user.id)
@@ -8489,7 +8515,7 @@ async def merge_clusters(
     """
     Merge two clusters into one.
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     merged_cluster = clustering_service.merge_clusters(
@@ -8519,7 +8545,7 @@ async def split_cluster(
     """
     Split streams from one cluster into a new cluster.
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     new_cluster = clustering_service.split_cluster(
@@ -8548,7 +8574,7 @@ async def toggle_cluster_lock(
     """
     Lock/unlock a cluster to prevent automatic updates.
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     success = clustering_service.set_cluster_lock(cluster_id, locked)
@@ -8573,7 +8599,7 @@ async def toggle_cluster_feature(
     """
     Feature/unfeature a cluster for homepage display.
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     success = clustering_service.set_cluster_featured(cluster_id, featured)
@@ -8597,7 +8623,7 @@ async def delete_cluster(
     """
     Delete a cluster (streams remain, just ungrouped).
     """
-    from clustering import EventClusteringService
+    from backend.clustering import EventClusteringService
     
     clustering_service = EventClusteringService(db)
     success = clustering_service.delete_cluster(cluster_id, deleted_by=current_user.id)
@@ -8626,7 +8652,7 @@ async def get_revenue_forecast(
     Get revenue forecast for a creator.
     If creator_id not specified, uses current user.
     """
-    from revenue_forecasting import RevenueForecastingService
+    from backend.revenue_forecasting import RevenueForecastingService
     
     target_id = creator_id or current_user.id
     service = RevenueForecastingService(db)
@@ -8681,7 +8707,7 @@ async def check_goal_progress(
     """
     Check progress toward a revenue goal.
     """
-    from revenue_forecasting import RevenueForecastingService
+    from backend.revenue_forecasting import RevenueForecastingService
     from decimal import Decimal
     
     service = RevenueForecastingService(db)
@@ -8709,7 +8735,7 @@ async def get_currency_packs(
     """
     Get available currency packs with personalized pricing.
     """
-    from currency_packs import CurrencyPacksService
+    from backend.currency_packs import CurrencyPacksService
     
     service = CurrencyPacksService(db)
     packs = service.get_available_packs(current_user.id)
@@ -8742,7 +8768,7 @@ async def get_currency_balance(
     """
     Get user's current currency balance.
     """
-    from currency_packs import CurrencyPacksService
+    from backend.currency_packs import CurrencyPacksService
     
     service = CurrencyPacksService(db)
     balance = service.get_balance(current_user.id)
@@ -8768,7 +8794,7 @@ async def purchase_currency_pack(
     """
     Purchase a currency pack.
     """
-    from currency_packs import CurrencyPacksService, CurrencyPackSize
+    from backend.currency_packs import CurrencyPacksService, CurrencyPackSize
     
     service = CurrencyPacksService(db)
     
@@ -8815,7 +8841,7 @@ async def spend_currency(
     """
     Spend coins (tips, purchases, etc.)
     """
-    from currency_packs import CurrencyPacksService
+    from backend.currency_packs import CurrencyPacksService
     
     service = CurrencyPacksService(db)
     result = service.spend_coins(
@@ -8839,7 +8865,7 @@ async def get_conversion_rate(
     """
     Get user's coin-to-USD conversion rate.
     """
-    from currency_packs import CurrencyPacksService
+    from backend.currency_packs import CurrencyPacksService
     
     service = CurrencyPacksService(db)
     rate = service.get_conversion_rate(current_user.id)
@@ -8865,7 +8891,7 @@ async def get_good_preview(
     Get detailed preview data for a virtual good.
     Includes usage stats, creator info, rarity display.
     """
-    from virtual_goods import VirtualGoodsService, GoodRarity
+    from backend.virtual_goods import VirtualGoodsService, GoodRarity
     
     service = VirtualGoodsService(db)
     
@@ -8934,7 +8960,7 @@ async def get_trending_goods(
     """
     Get trending virtual goods based on recent purchases.
     """
-    from virtual_goods import VirtualGoodsService
+    from backend.virtual_goods import VirtualGoodsService
     
     service = VirtualGoodsService(db)
     result = await service.get_goods(
@@ -8978,7 +9004,7 @@ async def get_seasonal_goods(
     """
     Get seasonal/limited-time virtual goods.
     """
-    from virtual_goods import VirtualGoodsService
+    from backend.virtual_goods import VirtualGoodsService
     
     service = VirtualGoodsService(db)
     result = await service.get_goods(
@@ -9007,7 +9033,7 @@ async def use_virtual_good(
     """
     Use a virtual good (trigger effect, send emote, etc.)
     """
-    from virtual_goods import VirtualGoodsService
+    from backend.virtual_goods import VirtualGoodsService
     
     service = VirtualGoodsService(db)
     

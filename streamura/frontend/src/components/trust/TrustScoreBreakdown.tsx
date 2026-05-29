@@ -61,7 +61,7 @@ const fetchTrustBreakdown = async (userId?: number) => {
         : '/api/v1/trust/breakdown/me';
 
     const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch trust breakdown');
     return res.json();

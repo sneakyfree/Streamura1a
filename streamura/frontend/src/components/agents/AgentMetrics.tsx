@@ -41,7 +41,7 @@ const fetchAgentMetrics = async (agentType?: string, timeRange?: string) => {
     if (timeRange) params.set('time_range', timeRange);
 
     const res = await fetch(`/api/v1/admin/agents/metrics?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
     });
     if (!res.ok) throw new Error('Failed to fetch metrics');
     return res.json();
