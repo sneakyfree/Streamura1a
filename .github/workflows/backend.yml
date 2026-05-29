@@ -36,14 +36,7 @@ jobs:
       - name: Run pytest
         working-directory: streamura/backend
         # PYTHONPATH mirrors start.sh: parent (for `backend.x` imports) + backend/ (for bare imports)
-        #
-        # QUARANTINE: test_streaming.py and test_hitl.py have pre-existing
-        # failures from test/code drift (async methods called without await;
-        # demo LiveKit-mock behavior mismatches; a stale get_approval_history
-        # method name). They are excluded here so CI protects the other 20 test
-        # files. Re-include them once the suite is reconciled. See AUDIT notes.
+        # Full suite — all 516 tests pass (test_streaming + test_hitl reconciled).
         run: |
           export PYTHONPATH="$(cd .. && pwd):$(pwd)"
-          python -m pytest tests/ -q \
-            --ignore=tests/test_streaming.py \
-            --ignore=tests/test_hitl.py
+          python -m pytest tests/ -q

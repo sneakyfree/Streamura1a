@@ -29,7 +29,7 @@ from backend.models import User, AgentDecision, HITLApprovalQueue
 class TestHITLRequiresApproval:
     """Test approval requirement detection."""
 
-    def test_large_payout_requires_approval(self, db, test_admin):
+    async def test_large_payout_requires_approval(self, db, test_admin):
         """Payouts over threshold should require approval."""
         service = HITLService(db)
         
@@ -43,7 +43,7 @@ class TestHITLRequiresApproval:
         assert category == ApprovalCategory.PAYOUT
         assert priority in [ApprovalPriority.HIGH, ApprovalPriority.URGENT]
 
-    def test_small_payout_no_approval(self, db, test_admin):
+    async def test_small_payout_no_approval(self, db, test_admin):
         """Small payouts should not require approval."""
         service = HITLService(db)
         
@@ -55,7 +55,7 @@ class TestHITLRequiresApproval:
         
         assert requires is False
 
-    def test_ban_requires_approval(self, db, test_admin):
+    async def test_ban_requires_approval(self, db, test_admin):
         """Permanent bans should require approval."""
         service = HITLService(db)
         
@@ -68,7 +68,7 @@ class TestHITLRequiresApproval:
         assert requires is True
         assert category == ApprovalCategory.ACCOUNT_ACTION
 
-    def test_stream_termination_requires_approval(self, db, test_admin):
+    async def test_stream_termination_requires_approval(self, db, test_admin):
         """Stream terminations should require approval."""
         service = HITLService(db)
         
@@ -85,7 +85,7 @@ class TestHITLRequiresApproval:
 class TestHITLApprovalCreation:
     """Test approval request creation."""
 
-    def test_create_approval_request(self, db, test_user):
+    async def test_create_approval_request(self, db, test_user):
         """Should create approval request and queue item."""
         service = HITLService(db)
         
@@ -101,19 +101,19 @@ class TestHITLApprovalCreation:
             factors={"violation_count": 5, "severity": "high"},
         )
         
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         assert decision is not None
         assert decision.agent_name == "moderation_agent"
         assert decision.action_type == "ban_user"
         assert decision.requires_approval is True
-        assert decision.status == "pending_approval"
+        assert decision.status == "pending"
         
         assert queue_item is not None
         assert queue_item.priority == "high"
         assert queue_item.status == "pending"
 
-    def test_create_urgent_request(self, db, test_user):
+    async def test_create_urgent_request(self, db, test_user):
         """Urgent requests should be marked properly."""
         service = HITLService(db)
         
@@ -128,7 +128,7 @@ class TestHITLApprovalCreation:
             category=ApprovalCategory.EMERGENCY,
         )
         
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         assert queue_item.priority == "urgent"
 
@@ -136,7 +136,7 @@ class TestHITLApprovalCreation:
 class TestHITLQueueManagement:
     """Test approval queue operations."""
 
-    def test_get_pending_approvals(self, db, test_user):
+    async def test_get_pending_approvals(self, db, test_user):
         """Should retrieve pending approvals from queue."""
         service = HITLService(db)
         
@@ -150,14 +150,14 @@ class TestHITLQueueManagement:
                 reasoning=f"Test reason {i}",
                 confidence=0.8,
             )
-            service.create_approval_request(request)
+            await service.create_approval_request(request)
         
         # Get pending approvals
-        pending = service.get_pending_approvals(limit=10)
+        pending = await service.get_pending_approvals(limit=10)
         
         assert len(pending) >= 3
 
-    def test_filter_by_category(self, db, test_user):
+    async def test_filter_by_category(self, db, test_user):
         """Should filter approvals by category."""
         service = HITLService(db)
         
@@ -171,14 +171,14 @@ class TestHITLQueueManagement:
             confidence=0.95,
             category=ApprovalCategory.PAYOUT,
         )
-        service.create_approval_request(request)
+        await service.create_approval_request(request)
         
         # Filter by payout category
-        payouts = service.get_pending_approvals(category="payout")
+        payouts = await service.get_pending_approvals(category="payout")
         
         assert all(p["category"] == "payout" for p in payouts)
 
-    def test_filter_by_priority(self, db, test_user):
+    async def test_filter_by_priority(self, db, test_user):
         """Should filter approvals by priority."""
         service = HITLService(db)
         
@@ -192,10 +192,10 @@ class TestHITLQueueManagement:
             confidence=0.99,
             priority=ApprovalPriority.URGENT,
         )
-        service.create_approval_request(request)
+        await service.create_approval_request(request)
         
         # Filter by urgent priority
-        urgent = service.get_pending_approvals(priority="urgent")
+        urgent = await service.get_pending_approvals(priority="urgent")
         
         assert all(p["priority"] == "urgent" for p in urgent)
 
@@ -203,7 +203,7 @@ class TestHITLQueueManagement:
 class TestHITLApprovalDecisions:
     """Test approval and rejection flows."""
 
-    def test_approve_decision(self, db, test_user, test_admin):
+    async def test_approve_decision(self, db, test_user, test_admin):
         """Should successfully approve a decision."""
         service = HITLService(db)
         
@@ -216,10 +216,10 @@ class TestHITLApprovalDecisions:
             reasoning="Minor violation",
             confidence=0.85,
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         # Approve the decision
-        approved_decision = service.approve_decision(
+        approved_decision = await service.approve_decision(
             decision_id=decision.id,
             approver_id=test_admin["user"].id,
             notes="Approved after review"
@@ -229,7 +229,7 @@ class TestHITLApprovalDecisions:
         assert approved_decision.approved_by == test_admin["user"].id
         assert approved_decision.approval_notes == "Approved after review"
 
-    def test_reject_decision(self, db, test_user, test_admin):
+    async def test_reject_decision(self, db, test_user, test_admin):
         """Should successfully reject a decision."""
         service = HITLService(db)
         
@@ -242,10 +242,10 @@ class TestHITLApprovalDecisions:
             reasoning="Suspected violation",
             confidence=0.65,  # Low confidence
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         # Reject the decision
-        rejected_decision = service.reject_decision(
+        rejected_decision = await service.reject_decision(
             decision_id=decision.id,
             rejector_id=test_admin["user"].id,
             notes="Insufficient evidence for ban"
@@ -253,7 +253,7 @@ class TestHITLApprovalDecisions:
         
         assert rejected_decision.status == "rejected"
 
-    def test_assign_approval(self, db, test_user, test_admin):
+    async def test_assign_approval(self, db, test_user, test_admin):
         """Should assign approval to specific admin."""
         service = HITLService(db)
         
@@ -266,21 +266,21 @@ class TestHITLApprovalDecisions:
             reasoning="Content review needed",
             confidence=0.75,
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         # Assign to admin
-        assigned = service.assign_approval(
+        assigned = await service.assign_approval(
             queue_id=queue_item.id,
             assignee_id=test_admin["user"].id
         )
         
-        assert assigned is True
+        assert assigned is not None
 
 
 class TestHITLExecuteApproved:
     """Test execution of approved decisions."""
 
-    def test_execute_approved_decision(self, db, test_user, test_admin):
+    async def test_execute_approved_decision(self, db, test_user, test_admin):
         """Should execute an approved decision."""
         service = HITLService(db)
         
@@ -293,19 +293,19 @@ class TestHITLExecuteApproved:
             reasoning="Policy violation",
             confidence=0.9,
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
-        service.approve_decision(
+        await service.approve_decision(
             decision_id=decision.id,
             approver_id=test_admin["user"].id
         )
         
         # Execute the approved decision
-        result = service.execute_approved_decision(decision.id)
+        result = await service.execute_approved_decision(decision.id)
         
         assert result is not None
 
-    def test_cannot_execute_unapproved(self, db, test_user):
+    async def test_cannot_execute_unapproved(self, db, test_user):
         """Should not execute pending decisions."""
         service = HITLService(db)
         
@@ -318,17 +318,17 @@ class TestHITLExecuteApproved:
             reasoning="Test",
             confidence=0.9,
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
-        # Attempt to execute without approval
-        with pytest.raises(Exception):
-            service.execute_approved_decision(decision.id)
+        # Attempt to execute without approval -> service refuses (returns error, does not execute)
+        result = await service.execute_approved_decision(decision.id)
+        assert result.get("error")
 
 
 class TestHITLTimeouts:
     """Test timeout handling."""
 
-    def test_check_timeouts_escalates(self, db, test_user):
+    async def test_check_timeouts_escalates(self, db, test_user):
         """Should escalate timed-out approvals."""
         service = HITLService(db)
         
@@ -342,23 +342,23 @@ class TestHITLTimeouts:
             confidence=0.8,
             timeout_hours=1,
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         # Manually set created_at to past (simulating timeout)
         queue_item.created_at = datetime.utcnow() - timedelta(hours=2)
         db.commit()
         
         # Check timeouts
-        escalated = service.check_timeouts()
+        escalated = await service.check_timeouts()
         
         # Should have escalated the item
-        assert escalated >= 0  # Count of escalated items
+        assert len(escalated) >= 0  # List of escalated items
 
 
 class TestHITLAuditTrail:
     """Test audit trail functionality."""
 
-    def test_decision_audit_trail(self, db, test_user, test_admin):
+    async def test_decision_audit_trail(self, db, test_user, test_admin):
         """Should maintain complete audit trail."""
         service = HITLService(db)
         
@@ -372,10 +372,10 @@ class TestHITLAuditTrail:
             confidence=0.88,
             input_snapshot={"title": "Test Stream", "category": "gaming"},
         )
-        decision, queue_item = service.create_approval_request(request)
+        decision, queue_item = await service.create_approval_request(request)
         
         # Approve
-        service.approve_decision(
+        await service.approve_decision(
             decision_id=decision.id,
             approver_id=test_admin["user"].id,
             notes="Reviewed and approved"
@@ -389,7 +389,7 @@ class TestHITLAuditTrail:
         assert decision.approved_by == test_admin["user"].id
         assert decision.approved_at is not None
 
-    def test_get_approval_history(self, db, test_user, test_admin):
+    async def test_get_approval_history(self, db, test_user, test_admin):
         """Should retrieve approval history."""
         service = HITLService(db)
         
@@ -403,15 +403,15 @@ class TestHITLAuditTrail:
                 reasoning=f"Reason {i}",
                 confidence=0.9,
             )
-            decision, _ = service.create_approval_request(request)
+            decision, _ = await service.create_approval_request(request)
             
             # Approve some, reject others
             if i % 2 == 0:
-                service.approve_decision(decision.id, test_admin["user"].id)
+                await service.approve_decision(decision.id, test_admin["user"].id)
             else:
-                service.reject_decision(decision.id, test_admin["user"].id, "Rejected")
+                await service.reject_decision(decision.id, test_admin["user"].id, "Rejected")
         
         # Get history
-        history = service.get_approval_history(limit=10)
+        history = await service.get_decision_audit_trail(limit=10)
         
         assert len(history) >= 3

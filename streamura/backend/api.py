@@ -687,9 +687,10 @@ async def create_stream(
 
     return db_stream
 
-@router.get("/streams/{stream_id}", response_model=StreamResponse)
+@router.get("/streams/{stream_id}", response_model=StreamResponse,
+            response_model_exclude={"stream_key"})
 async def read_stream(stream_id: int, request: Request, db: Session = Depends(get_db)):
-    """Get stream information"""
+    """Get stream information (public; stream_key is a secret and is excluded)"""
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
         locale = get_locale(request)
@@ -2023,7 +2024,9 @@ async def get_nearby_events(
     return [e[0] for e in nearby[:limit]]
 
 
-@router.get("/events/{event_id}", response_model=EventDetailResponse)
+@router.get("/events/{event_id}", response_model=EventDetailResponse,
+            response_model_exclude={"streams": {"__all__": {"stream_key"}},
+                                    "primary_stream": {"stream_key"}})
 async def get_event_detail(event_id: int, request: Request, db: Session = Depends(get_db)):
     """
     Get detailed event information including streams.

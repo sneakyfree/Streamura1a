@@ -140,11 +140,11 @@ class HITLService:
             if trust_score > 0.8:
                 return True, ApprovalCategory.ACCOUNT_ACTION, ApprovalPriority.HIGH
         
-        # Large payouts
-        if action_type in ["approve_payout", "instant_payout"]:
+        # Large payouts (large amounts are high-priority by definition)
+        if action_type in ["approve_payout", "instant_payout", "process_payout"]:
             amount = Decimal(str(context.get("amount", 0)))
             if amount >= PAYOUT_HITL_THRESHOLD:
-                return True, ApprovalCategory.PAYOUT, ApprovalPriority.NORMAL
+                return True, ApprovalCategory.PAYOUT, ApprovalPriority.HIGH
         
         # Content removal
         if action_type in ["terminate_stream", "remove_video", "delete_content"]:

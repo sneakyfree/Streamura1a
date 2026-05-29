@@ -73,10 +73,15 @@ export function EventDetailPage() {
   // Format duration
   const getEventDuration = () => {
     if (!event.starts_at) return 'Unknown';
-    const start = new Date(event.starts_at);
+    // Backend sends naive UTC timestamps; treat as UTC so durations aren't off by the
+    // browser's timezone (which previously produced negative "Live for -165m" values).
+    const raw = event.starts_at;
+    const iso = /[zZ]|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw + 'Z';
+    const start = new Date(iso);
     const now = new Date();
     const diff = Math.floor((now.getTime() - start.getTime()) / 1000 / 60);
 
+    if (diff < 0) return 'Starting soon';
     if (diff < 60) return `${diff}m`;
     if (diff < 1440) return `${Math.floor(diff / 60)}h ${diff % 60}m`;
     return `${Math.floor(diff / 1440)}d`;
@@ -190,7 +195,7 @@ export function EventDetailPage() {
                   Streams
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {event.total_streams}
+                  {event.streams?.length ?? event.total_streams ?? 0}
                 </div>
                 <div className="text-xs text-green-400">
                   {liveStreams.length} live

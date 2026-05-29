@@ -56,11 +56,36 @@ class MockAccessToken:
         return self
     
     def to_jwt(self) -> str:
-        """Generate a mock JWT token that encodes demo stream info."""
-        token_id = uuid.uuid4().hex[:16]
-        room = self.grants.room if self.grants else "unknown"
-        is_publisher = self.grants.can_publish if self.grants else False
-        return f"demo_{room}_{token_id}_{'pub' if is_publisher else 'sub'}"
+        """Generate a real (signed) JWT encoding identity + video grants.
+
+        Produces a standards-shaped LiveKit-style JWT (3 segments) so clients
+        and tests can decode the claims. Signed with the api_secret (HS256).
+        """
+        import jwt as _jwt
+
+        now = int(time.time())
+        ttl_seconds = int(self.ttl.total_seconds()) if self.ttl else 21600
+        grants = self.grants
+        video = {
+            "roomJoin": getattr(grants, "room_join", True) if grants else True,
+            "room": getattr(grants, "room", "") if grants else "",
+            "canPublish": getattr(grants, "can_publish", False) if grants else False,
+            "canPublishData": getattr(grants, "can_publish_data", False) if grants else False,
+            "canSubscribe": getattr(grants, "can_subscribe", True) if grants else True,
+        }
+        claims = {
+            "iss": self.api_key,
+            "sub": self.identity or "",
+            "identity": self.identity or "",
+            "name": self.name or "",
+            "nbf": now,
+            "iat": now,
+            "exp": now + ttl_seconds,
+            "video": video,
+        }
+        token = _jwt.encode(claims, self.api_secret or "secret", algorithm="HS256")
+        # PyJWT>=2 returns str; older returns bytes
+        return token.decode("utf-8") if isinstance(token, bytes) else token
 
 
 class MockRoomService:
@@ -135,18 +160,100 @@ class MockEgressService:
         }
 
 
+class _MockRequest:
+    """Generic request stub mirroring the real livekit.api request protos.
+
+    Accepts and stores any keyword arguments so service code that constructs
+    api.CreateRoomRequest(...), api.S3Upload(...), etc. works unchanged.
+    """
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
+class _MockEncodedFileType:
+    MP4 = "MP4"
+    OGG = "OGG"
+
+
+class _MockAsyncRoomService:
+    """Async room service used by the mock LiveKitAPI context manager."""
+    async def create_room(self, req):
+        name = getattr(req, "name", None) or "demo-room"
+        info = MockRoomService().create_room(name)
+        return _MockRequest(name=info["name"], sid=info["sid"], creation_time=int(time.time()))
+
+    async def delete_room(self, req):
+        name = getattr(req, "room", None)
+        if name:
+            MockRoomService().delete_room(name)
+        return None
+
+    async def list_participants(self, req):
+        return []
+
+    async def remove_participant(self, req):
+        return None
+
+
+class _MockAsyncEgressService:
+    """Async egress service used by the mock LiveKitAPI context manager."""
+    async def start_room_composite_egress(self, req):
+        return _MockRequest(egress_id=f"EG_{uuid.uuid4().hex[:12]}", status="EGRESS_STARTING")
+
+    async def stop_egress(self, req):
+        eid = getattr(req, "egress_id", None) or f"EG_{uuid.uuid4().hex[:12]}"
+        return _MockRequest(egress_id=eid, status="EGRESS_COMPLETE")
+
+    async def list_egress(self, req):
+        return []
+
+
+class DemoLiveKitAPI:
+    """Async-context-manager mock of livekit.api.LiveKitAPI for demo mode.
+
+    Exists so service code can `async with api.LiveKitAPI(...) as lk:` and so
+    tests can patch `backend.streaming.api.LiveKitAPI`.
+    """
+    def __init__(self, url: str = None, api_key: str = None, api_secret: str = None, *args, **kwargs):
+        self.url = url
+        self.room = _MockAsyncRoomService()
+        self.egress = _MockAsyncEgressService()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def aclose(self):
+        return None
+
+
 class DemoAPI:
     """Demo mode API that simulates LiveKit functionality."""
-    
+
     VideoGrant = MockVideoGrant
     # Real LiveKit SDK exposes `VideoGrants` (plural); streaming.py uses that name.
     VideoGrants = MockVideoGrant
     AccessToken = MockAccessToken
-    
+    # Async API + request protos (mirror livekit.api surface used by streaming.py)
+    LiveKitAPI = DemoLiveKitAPI
+    CreateRoomRequest = _MockRequest
+    DeleteRoomRequest = _MockRequest
+    ListParticipantsRequest = _MockRequest
+    RoomParticipantIdentity = _MockRequest
+    S3Upload = _MockRequest
+    RoomCompositeEgressRequest = _MockRequest
+    EncodedFileOutput = _MockRequest
+    EncodedFileType = _MockEncodedFileType
+    ListEgressRequest = _MockRequest
+    StopEgressRequest = _MockRequest
+
     def __init__(self):
         self.room_service = MockRoomService()
         self.egress_service = MockEgressService()
-    
+
     def create_token(self, api_key: str, api_secret: str) -> MockAccessToken:
         """Create a new access token."""
         return MockAccessToken(api_key, api_secret)

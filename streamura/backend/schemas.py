@@ -44,7 +44,10 @@ class StreamCreate(StreamBase):
 
 class StreamResponse(StreamBase):
     id: int
-    stream_key: str
+    # Optional: a broadcast secret. Present on owner-facing create/start responses;
+    # excluded from public GET endpoints via response_model_exclude. Nullable so a
+    # stream without a key (e.g. seeded/legacy rows) doesn't 500 the detail view.
+    stream_key: Optional[str] = None
     user_id: Optional[int] = None
     status: str
     viewer_count: int

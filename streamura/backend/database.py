@@ -60,8 +60,11 @@ SessionLocal = scoped_session(
     )
 )
 
-# Base for models
-Base = declarative_base()
+# Base for models — re-export the single Base defined in models.py so that
+# `from .database import Base` and `from .models import Base` resolve to the SAME
+# registry. (Previously database.py created its own Base, so create_all() on it
+# registered zero tables — a silent footgun for any seeder importing it here.)
+from .models import Base  # noqa: E402
 
 def get_db():
     """Dependency to get DB session"""

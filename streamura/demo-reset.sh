@@ -9,19 +9,22 @@ cd "$SCRIPT_DIR"
 
 echo "🔄 Resetting Streamura database to demo state..."
 
-# Remove existing database
-rm -f backend/streamura.db
+# Remove existing database. The app's default DATABASE_URL is sqlite:///./streamura.db
+# resolved from this directory (SCRIPT_DIR), so the live DB is ./streamura.db — remove
+# that one (and the legacy backend/ copy, if any) so reset truly resets.
+rm -f streamura.db backend/streamura.db
 echo "✅ Removed old database"
 
 # Activate virtual environment
 source backend/venv/bin/activate
 export PYTHONPATH="$SCRIPT_DIR"
-export JWT_SECRET="${JWT_SECRET:-streamura_super_secure_jwt_secret_key_2026_production_ready}"
+# Ephemeral secret for the seed process (never hardcode a real key in the repo).
+export JWT_SECRET="${JWT_SECRET:-$(python -c 'import secrets;print(secrets.token_urlsafe(48))')}"
 
 # Create tables and seed data
 python -c "
 from backend.database import Base, engine, SessionLocal
-from backend.models import User, Event, Stream, UserTrustScore
+from backend.models import User, Event, Stream
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import random
@@ -59,23 +62,9 @@ try:
         )
         db.add(user)
         db.flush()
-        
-        # Add trust score
-        trust_score = UserTrustScore(
-            user_id=user.id,
-            identity_score=trust * 0.2,
-            account_age_score=trust * 0.1,
-            streaming_history_score=trust * 0.2,
-            engagement_score=trust * 0.15,
-            content_quality_score=trust * 0.15,
-            community_standing_score=trust * 0.1,
-            financial_history_score=trust * 0.1,
-            total_score=trust,
-        )
-        db.add(trust_score)
         db_users.append(user)
-    
-    print(f'✅ Created {len(users)} users with trust scores')
+
+    print(f'✅ Created {len(users)} users')
     
     # Events
     events = [

@@ -57,13 +57,15 @@ export function Navbar() {
             >
               Nearby
             </Link>
-            <Link
-              to="/shop"
-              className="text-slate-300 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <ShoppingBag className="h-4 w-4" />
-              Shop
-            </Link>
+            {isAuthenticated && (
+              <Link
+                to="/shop"
+                className="text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Shop
+              </Link>
+            )}
           </div>
 
           {/* Search Bar */}
@@ -167,13 +169,15 @@ export function Navbar() {
               >
                 Nearby
               </Link>
-              <Link
-                to="/shop"
-                className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center gap-2"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Shop
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  to="/shop"
+                  className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center gap-2"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                  Shop
+                </Link>
+              )}
             </div>
             {isAuthenticated ? (
               <>
