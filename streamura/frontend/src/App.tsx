@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { HomePage } from '@/pages/Home';
 import { LoginPage } from '@/pages/Login';
 import { RegisterPage } from '@/pages/Register';
@@ -65,52 +67,18 @@ function AppContent() {
 
       {/* Routes with navbar */}
       <Route element={<Layout />}>
+        {/* Public — browse & watch (anonymous allowed) */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/feed" element={<FeedPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/trending" element={<DiscoverPage />} />
         <Route path="/nearby" element={<DiscoverPage />} />
         <Route path="/streams/:streamId" element={<StreamViewPage />} />
         <Route path="/events/:eventId" element={<EventDetailPage />} />
         <Route path="/recordings/:recordingId" element={<RecordingPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/stream/new" element={<GoLivePage />} />
-
-        {/* Community routes */}
         <Route path="/communities" element={<CommunitiesPage />} />
         <Route path="/communities/:communityId" element={<CommunityDetailPage />} />
 
-        {/* Messaging routes */}
-        <Route path="/messages" element={<MessagesPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-
-        {/* Shop routes */}
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/coins" element={<CurrencyShop />} />
-
-        {/* Settings */}
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/settings/data-export" element={<DataExport />} />
-        <Route path="/appeals" element={<AppealsPage />} />
-        <Route path="/content-licensing" element={<ContentLicensingPage />} />
-        <Route path="/emergency-broadcast" element={<EmergencyBroadcastPage />} />
-        <Route path="/kyc-verification" element={<KYCVerificationPage />} />
-        <Route path="/payouts" element={<PayoutsPage />} />
-        <Route path="/tax" element={<TaxCenter />} />
-
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/reports" element={<ReportQueue />} />
-        <Route path="/admin/moderation" element={<ModerationQueue />} />
-        <Route path="/admin/tickets" element={<TicketScanner />} />
-        <Route path="/admin/agents" element={<AgentDashboard />} />
-        <Route path="/admin/hitl-queue" element={<HITLQueue />} />
-        <Route path="/admin/clusters" element={<ClusterManagement />} />
-
-        {/* Legal/Info routes */}
+        {/* Legal/Info routes (public) */}
         <Route path="/about" element={<AboutPage />} />
         <Route path="/features" element={<AboutPage />} />
         <Route path="/pricing" element={<PricingPage />} />
@@ -120,6 +88,45 @@ function AppContent() {
         <Route path="/cookies" element={<PrivacyPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/sitemap" element={<SitemapPage />} />
+
+        {/* Authenticated routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/stream/new" element={<GoLivePage />} />
+
+          {/* Messaging */}
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+
+          {/* Shop / currency */}
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/coins" element={<CurrencyShop />} />
+
+          {/* Account / settings / monetization */}
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/data-export" element={<DataExport />} />
+          <Route path="/appeals" element={<AppealsPage />} />
+          <Route path="/content-licensing" element={<ContentLicensingPage />} />
+          <Route path="/emergency-broadcast" element={<EmergencyBroadcastPage />} />
+          <Route path="/kyc-verification" element={<KYCVerificationPage />} />
+          <Route path="/payouts" element={<PayoutsPage />} />
+          <Route path="/tax" element={<TaxCenter />} />
+
+          {/* Admin routes (require is_admin) */}
+          <Route element={<ProtectedRoute requireAdmin />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/reports" element={<ReportQueue />} />
+            <Route path="/admin/moderation" element={<ModerationQueue />} />
+            <Route path="/admin/tickets" element={<TicketScanner />} />
+            <Route path="/admin/agents" element={<AgentDashboard />} />
+            <Route path="/admin/hitl-queue" element={<HITLQueue />} />
+            <Route path="/admin/clusters" element={<ClusterManagement />} />
+          </Route>
+        </Route>
       </Route>
     </Routes>
   );
@@ -127,10 +134,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

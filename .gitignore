@@ -2,6 +2,11 @@ node_modules/
 .next/
 *.log
 
+# Secrets / local env (never commit; use .env.example as the template)
+.env
+*.env
+!.env.example
+
 # Python build artifacts
 __pycache__/
 *.pyc

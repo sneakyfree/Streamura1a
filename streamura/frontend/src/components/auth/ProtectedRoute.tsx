@@ -1,13 +1,20 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  /** Optional explicit children. When omitted, renders <Outlet /> so the
+   *  component can be used as a React Router layout route element. */
+  children?: React.ReactNode;
   requireVerified?: boolean;
+  requireAdmin?: boolean;
 }
 
-export function ProtectedRoute({ children, requireVerified = false }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requireVerified = false,
+  requireAdmin = false,
+}: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const location = useLocation();
 
@@ -21,6 +28,11 @@ export function ProtectedRoute({ children, requireVerified = false }: ProtectedR
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (requireAdmin && !user?.is_admin) {
+    // Authenticated but not an admin — send back to the app shell.
+    return <Navigate to="/" replace />;
   }
 
   if (requireVerified && user && !user.is_verified) {
@@ -38,5 +50,5 @@ export function ProtectedRoute({ children, requireVerified = false }: ProtectedR
     );
   }
 
-  return <>{children}</>;
+  return <>{children ?? <Outlet />}</>;
 }
