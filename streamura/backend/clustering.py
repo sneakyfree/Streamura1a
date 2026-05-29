@@ -357,6 +357,43 @@ class EventClusteringService:
         logger.info(f"Detected {len(event_clusters)} event clusters from {len(streams)} streams")
         return event_clusters
 
+    def get_active_clusters(self) -> List[Dict[str, Any]]:
+        """Return active geographic clusters as admin-friendly dicts.
+
+        Adapts the transient geometric EventCluster objects from
+        cluster_active_streams() into the serialized shape the admin
+        cluster-management endpoint (GET /admin/clusters) expects.
+        """
+        clusters = self.cluster_active_streams()
+        result: List[Dict[str, Any]] = []
+        for i, c in enumerate(clusters):
+            lat, lon = c.centroid
+            result.append({
+                "cluster_id": f"cluster-{i + 1}",
+                "event_id": None,
+                "title": f"Cluster @ {lat:.3f}, {lon:.3f}",
+                "centroid": [lat, lon],
+                "radius_meters": c.radius_meters,
+                "confidence": c.confidence,
+                "velocity": 0,
+                "velocity_trend": "stable",
+                "is_trending": c.confidence >= self.config.HIGH_CONFIDENCE_THRESHOLD,
+                "is_featured": False,
+                "category": None,
+                "auto_generated": True,
+                "locked": False,
+                "streams": [
+                    {
+                        "stream_id": s.stream_id,
+                        "viewer_count": s.viewer_count,
+                        "latitude": s.latitude,
+                        "longitude": s.longitude,
+                    }
+                    for s in c.streams
+                ],
+            })
+        return result
+
     def should_streams_cluster(
         self,
         stream_a: Stream,

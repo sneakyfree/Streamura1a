@@ -3716,10 +3716,17 @@ async def unlike_stream(
 @router.get("/streams/{stream_id}/is-liked")
 async def check_is_liked(
     stream_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
-    """Check if current user has liked the stream."""
+    """Check if current user has liked the stream.
+
+    Public-safe: anonymous viewers (no auth) simply get is_liked=false instead
+    of a 401, since the stream page calls this for everyone.
+    """
+    if not current_user:
+        return {"is_liked": False}
+
     like = (
         db.query(StreamLike)
         .filter(StreamLike.user_id == current_user.id)
