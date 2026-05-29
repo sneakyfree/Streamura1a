@@ -66,6 +66,7 @@ class UserResponse(BaseModel):
     email: Optional[str]
     phone_number: Optional[str]
     is_verified: bool
+    is_admin: bool = False
     balance: float
     lifetime_earnings: float
 

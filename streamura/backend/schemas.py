@@ -20,6 +20,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     is_verified: bool
+    is_admin: bool = False
     balance: float
     lifetime_earnings: float
 
