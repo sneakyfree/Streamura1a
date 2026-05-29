@@ -139,6 +139,8 @@ class DemoAPI:
     """Demo mode API that simulates LiveKit functionality."""
     
     VideoGrant = MockVideoGrant
+    # Real LiveKit SDK exposes `VideoGrants` (plural); streaming.py uses that name.
+    VideoGrants = MockVideoGrant
     AccessToken = MockAccessToken
     
     def __init__(self):
