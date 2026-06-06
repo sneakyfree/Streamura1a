@@ -48,6 +48,20 @@ api.interceptors.response.use(
       }
     }
 
+    // Surface the backend's friendly error detail as error.message so the UI
+    // never shows raw axios text like "Request failed with status code 401".
+    // FastAPI returns { detail: string } or, for validation errors (422),
+    // { detail: [{ loc, msg, type }] }.
+    const detail = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === 'string' && detail.trim()) {
+      error.message = detail;
+    } else if (Array.isArray(detail) && detail.length) {
+      const msgs = detail
+        .map((d) => (d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : ''))
+        .filter(Boolean);
+      if (msgs.length) error.message = msgs.join(', ');
+    }
+
     return Promise.reject(error);
   }
 );
@@ -89,6 +103,11 @@ export const authApi = {
 
   getCurrentUser: async (): Promise<User> => {
     const response = await api.get<User>('/users/me');
+    return response.data;
+  },
+
+  updateProfile: async (data: { display_name?: string; bio?: string; avatar_url?: string; preferences?: Record<string, unknown> }): Promise<User> => {
+    const response = await api.patch<User>('/users/me', data);
     return response.data;
   },
 };
@@ -1430,7 +1449,8 @@ export const subscriptionApi = {
   },
 
   redeemGiftCode: async (code: string): Promise<GiftCodeRedemption> => {
-    const response = await api.post<GiftCodeRedemption>('/gift-codes/redeem', { code });
+    // Backend expects `code` as a query param (not a JSON body).
+    const response = await api.post<GiftCodeRedemption>('/gift-codes/redeem', null, { params: { code } });
     return response.data;
   },
 };

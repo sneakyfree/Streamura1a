@@ -69,6 +69,10 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     balance: float
     lifetime_earnings: float
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    preferences: Optional[dict] = None
 
     class Config:
         from_attributes = True

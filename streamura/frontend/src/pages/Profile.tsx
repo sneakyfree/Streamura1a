@@ -95,10 +95,12 @@ export function ProfilePage() {
                 </button>
               </div>
             </div>
-            <Button variant="secondary">
-              <Settings className="h-4 w-4 mr-2" />
-              Edit Profile
-            </Button>
+            <Link to="/settings">
+              <Button variant="secondary">
+                <Settings className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            </Link>
           </div>
         </div>
 

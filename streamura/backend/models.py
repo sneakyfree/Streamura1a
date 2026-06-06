@@ -70,6 +70,17 @@ class User(Base):
     # Internationalization (Phase 13)
     preferred_language = Column(String(10), default='en')
 
+    # User preferences (notification toggles, privacy flags) stored as a JSON blob.
+    preferences = Column(JSON, nullable=True)
+
+    # Virtual currency (Streamura Coins) — persisted balance for the currency shop.
+    coin_balance = Column(Integer, default=0)
+    purchased_coins = Column(Integer, default=0)
+    bonus_coins = Column(Integer, default=0)
+    earned_coins = Column(Integer, default=0)
+    spent_coins = Column(Integer, default=0)
+    last_coin_purchase = Column(DateTime, nullable=True)
+
 class Stream(Base):
     """Stream model representing live video streams"""
     __tablename__ = "streams"

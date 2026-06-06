@@ -23,9 +23,19 @@ class UserResponse(UserBase):
     is_admin: bool = False
     balance: float
     lifetime_earnings: float
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+class UserProfileUpdate(BaseModel):
+    """Editable profile fields for PATCH /users/me."""
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    preferences: Optional[dict] = None
 
 # Stream Schemas
 class StreamBase(BaseModel):

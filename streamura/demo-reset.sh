@@ -15,14 +15,19 @@ echo "🔄 Resetting Streamura database to demo state..."
 rm -f streamura.db backend/streamura.db
 echo "✅ Removed old database"
 
-# Activate virtual environment
-source backend/venv/bin/activate
+# Use the venv interpreter directly (relocation-proof; `source activate` hardcodes
+# an absolute path that breaks when the repo is moved).
+PYBIN="$SCRIPT_DIR/backend/venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ venv interpreter not found at $PYBIN — run: python3 -m venv backend/venv && backend/venv/bin/pip install -r backend/requirements.txt"
+    exit 1
+fi
 export PYTHONPATH="$SCRIPT_DIR"
 # Ephemeral secret for the seed process (never hardcode a real key in the repo).
-export JWT_SECRET="${JWT_SECRET:-$(python -c 'import secrets;print(secrets.token_urlsafe(48))')}"
+export JWT_SECRET="${JWT_SECRET:-$("$PYBIN" -c 'import secrets;print(secrets.token_urlsafe(48))')}"
 
 # Create tables and seed data
-python -c "
+"$PYBIN" -c "
 from backend.database import Base, engine, SessionLocal
 from backend.models import User, Event, Stream
 from datetime import datetime, timedelta
@@ -103,14 +108,20 @@ try:
     for i, title in enumerate(stream_titles):
         event = db_events[i % len(db_events)]
         creator = db_users[random.randint(2, 5)]
+        is_live = i < 5
         stream = Stream(
             title=title,
             description=f'Live coverage of {event.title}',
             user_id=creator.id,
             event_id=event.id,
-            status='live' if i < 5 else 'ended',
+            status='live' if is_live else 'ended',
             category=event.category,
             viewer_count=random.randint(50, 2000),
+            # Live streams need a LiveKit room so the viewer-token endpoint issues a
+            # (demo) token instead of 400 'Stream temporarily unavailable'. Without
+            # a real LiveKit server the video simply won't connect (handled gracefully),
+            # but the stream page is now watchable/demoable.
+            livekit_room_name=(f'stream-{i + 1}-demoroom' if is_live else None),
             created_at=datetime.utcnow() - timedelta(hours=random.randint(0, 8)),
         )
         db.add(stream)
@@ -129,4 +140,4 @@ finally:
 "
 
 echo ""
-echo "🎉 Demo reset complete! Database ready at backend/streamura.db"
+echo "🎉 Demo reset complete! Database ready at ./streamura.db"

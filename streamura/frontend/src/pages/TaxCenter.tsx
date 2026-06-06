@@ -67,19 +67,23 @@ const currencyOptions = [
 
 // Document type row
 function DocumentRow({ doc }: { doc: TaxDocument }) {
-    const statusColors = {
+    const statusColors: Record<string, string> = {
         pending: 'bg-yellow-500/20 text-yellow-400',
         available: 'bg-green-500/20 text-green-400',
-        submitted: 'bg-blue-500/20 text-blue-400'
+        submitted: 'bg-blue-500/20 text-blue-400',
+        required: 'bg-amber-500/20 text-amber-400'
     };
 
-    const statusIcons = {
+    const statusIcons: Record<string, typeof FileText> = {
         pending: Clock,
         available: CheckCircle,
-        submitted: FileText
+        submitted: FileText,
+        required: AlertTriangle
     };
 
-    const StatusIcon = statusIcons[doc.status];
+    // Fall back gracefully for any unknown status instead of crashing the page.
+    const StatusIcon = statusIcons[doc.status] || FileText;
+    const statusColor = statusColors[doc.status] || 'bg-slate-500/20 text-slate-400';
 
     return (
         <div className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-lg">
@@ -90,7 +94,7 @@ function DocumentRow({ doc }: { doc: TaxDocument }) {
                 <div className="text-white font-medium">{doc.type}</div>
                 <div className="text-sm text-slate-400">Tax Year {doc.year}</div>
             </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusColors[doc.status]}`}>
+            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusColor}`}>
                 <StatusIcon className="h-3 w-3" />
                 {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
             </div>
@@ -151,22 +155,19 @@ export function TaxCenter() {
         }
     });
 
-    // Mock data
-    const mockData: TaxSummary = {
+    // Zeroed default while loading or if the request fails — never show fabricated
+    // earnings (a silent fallback to fake numbers misrepresents the user's taxes).
+    const emptyData: TaxSummary = {
         year: selectedYear,
-        total_earnings: 42356.78,
-        platform_fees: 4235.68,
-        net_earnings: 38121.10,
-        estimated_tax: 7624.22,
-        payouts_count: 24,
-        documents: [
-            { id: 1, type: '1099-K', year: 2024, status: 'available', download_url: '#' },
-            { id: 2, type: 'W-9', year: 2024, status: 'submitted' },
-            { id: 3, type: '1099-NEC', year: 2023, status: 'available', download_url: '#' }
-        ]
+        total_earnings: 0,
+        platform_fees: 0,
+        net_earnings: 0,
+        estimated_tax: 0,
+        payouts_count: 0,
+        documents: [],
     };
 
-    const taxData = data || mockData;
+    const taxData = data || emptyData;
 
     // Exchange rates (mock)
     const exchangeRates: Record<string, number> = {
@@ -213,7 +214,7 @@ export function TaxCenter() {
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                         className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
                     >
-                        {[2024, 2023, 2022].map((year) => (
+                        {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                             <option key={year} value={year}>Tax Year {year}</option>
                         ))}
                     </select>

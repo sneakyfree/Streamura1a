@@ -17,6 +17,7 @@ export interface User {
   onboarding_completed?: boolean;
   preferred_category?: string | null;
   instant_payouts_enabled?: boolean;
+  preferences?: Record<string, unknown> | null;
 }
 
 export interface UserCreate {

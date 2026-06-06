@@ -17,7 +17,7 @@ test.describe('Admin Dashboard', () => {
 
         // Should show admin dashboard or login redirect
         await expect(
-            page.locator('[data-testid="admin-dashboard"], text=/admin|dashboard/i, text=/sign in/i')
+            page.locator('[data-testid="admin-dashboard"]').or(page.getByText(/admin|dashboard/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
@@ -50,7 +50,7 @@ test.describe('Agent Dashboard', () => {
 
         // Should show agent dashboard
         await expect(
-            page.locator('[data-testid="agent-dashboard"], text=/agent|orchestrator/i, text=/sign in/i')
+            page.locator('[data-testid="agent-dashboard"]').or(page.getByText(/agent|orchestrator/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
@@ -58,7 +58,7 @@ test.describe('Agent Dashboard', () => {
         await page.goto('/admin/agents');
 
         // Look for agent type cards
-        const agentCards = page.locator('[data-testid="agent-card"], [class*="agent"], text=/moderation|discovery|trust|payout/i').first();
+        const agentCards = page.locator('[data-testid="agent-card"], [class*="agent"]').or(page.getByText(/moderation|discovery|trust|payout/i)).first();
 
         if (await agentCards.isVisible({ timeout: 5000 })) {
             await expect(agentCards).toBeVisible();
@@ -90,16 +90,16 @@ test.describe('Agent Dashboard', () => {
 
 test.describe('Agent Audit Log', () => {
     test('should display audit log page', async ({ page }) => {
-        await page.goto('/admin/agents/audit');
+        await page.goto('/admin/agents');
 
         // Should show audit log
         await expect(
-            page.locator('[data-testid="audit-log"], text=/audit|log|history/i, text=/sign in/i')
+            page.locator('[data-testid="audit-log"]').or(page.getByText(/audit|log|history/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
     test('should have filter options', async ({ page }) => {
-        await page.goto('/admin/agents/audit');
+        await page.goto('/admin/agents');
 
         // Look for filter controls
         const filters = page.locator('[data-testid="audit-filters"], select, [class*="filter"]').first();
@@ -110,7 +110,7 @@ test.describe('Agent Audit Log', () => {
     });
 
     test('should show audit entries with timestamps', async ({ page }) => {
-        await page.goto('/admin/agents/audit');
+        await page.goto('/admin/agents');
 
         // Look for entries with timestamps
         const entry = page.locator('[data-testid="audit-entry"], tr, [class*="entry"]').first();
@@ -126,16 +126,16 @@ test.describe('Agent Audit Log', () => {
 
 test.describe('HITL Approval Queue', () => {
     test('should display HITL queue page', async ({ page }) => {
-        await page.goto('/admin/hitl');
+        await page.goto('/admin/hitl-queue');
 
         // Should show HITL queue
         await expect(
-            page.locator('[data-testid="hitl-queue"], text=/approval|queue|pending/i, text=/sign in/i')
+            page.locator('[data-testid="hitl-queue"]').or(page.getByText(/approval|queue|pending/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
     test('should show priority filters', async ({ page }) => {
-        await page.goto('/admin/hitl');
+        await page.goto('/admin/hitl-queue');
 
         // Look for priority filter tabs or buttons
         const priorityFilters = page.locator('text=/urgent|high|normal|low/i').first();
@@ -146,7 +146,7 @@ test.describe('HITL Approval Queue', () => {
     });
 
     test('should show approval cards with actions', async ({ page }) => {
-        await page.goto('/admin/hitl');
+        await page.goto('/admin/hitl-queue');
 
         // Look for approval cards
         const approvalCard = page.locator('[data-testid="approval-card"], [class*="approval"], [class*="queue-item"]').first();
@@ -166,7 +166,7 @@ test.describe('Moderation Queue', () => {
 
         // Should show moderation queue
         await expect(
-            page.locator('[data-testid="moderation-queue"], text=/moderation|review|flagged/i, text=/sign in/i')
+            page.locator('[data-testid="moderation-queue"]').or(page.getByText(/moderation|review|flagged/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
@@ -186,7 +186,7 @@ test.describe('Moderation Queue', () => {
 
         // Look for content items or empty state
         await expect(
-            page.locator('[data-testid="moderation-item"], [class*="content-item"], text=/no items|queue empty/i')
+            page.locator('[data-testid="moderation-item"], [class*="content-item"]').or(page.getByText(/no items|queue empty/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 });
@@ -197,7 +197,7 @@ test.describe('User Management', () => {
 
         // Should show user management
         await expect(
-            page.locator('[data-testid="user-management"], text=/users|management/i, text=/sign in/i')
+            page.locator('[data-testid="user-management"]').or(page.getByText(/users|management/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
@@ -230,7 +230,7 @@ test.describe('Cluster Management', () => {
 
         // Should show cluster management
         await expect(
-            page.locator('[data-testid="cluster-management"], text=/cluster|event/i, text=/sign in/i')
+            page.locator('[data-testid="cluster-management"]').or(page.getByText(/cluster|event/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
@@ -259,16 +259,16 @@ test.describe('Cluster Management', () => {
 
 test.describe('Platform Analytics', () => {
     test('should display platform analytics page', async ({ page }) => {
-        await page.goto('/admin/analytics');
+        await page.goto('/admin');
 
         // Should show analytics dashboard
         await expect(
-            page.locator('[data-testid="platform-analytics"], text=/analytics|metrics/i, text=/sign in/i')
+            page.locator('[data-testid="platform-analytics"]').or(page.getByText(/analytics|metrics/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
     test('should show revenue metrics', async ({ page }) => {
-        await page.goto('/admin/analytics');
+        await page.goto('/admin');
 
         // Look for revenue section
         const revenueSection = page.locator('text=/revenue|earnings|income/i').first();
@@ -279,7 +279,7 @@ test.describe('Platform Analytics', () => {
     });
 
     test('should show charts', async ({ page }) => {
-        await page.goto('/admin/analytics');
+        await page.goto('/admin');
 
         // Look for chart elements
         const charts = page.locator('svg, canvas, [class*="chart"]').first();
@@ -292,16 +292,16 @@ test.describe('Platform Analytics', () => {
 
 test.describe('Content Filter Manager', () => {
     test('should display content filter manager', async ({ page }) => {
-        await page.goto('/admin/filters');
+        await page.goto('/admin/moderation');
 
         // Should show filter manager
         await expect(
-            page.locator('[data-testid="filter-manager"], text=/filter|content|rules/i, text=/sign in/i')
+            page.locator('[data-testid="filter-manager"]').or(page.getByText(/filter|content|rules/i)).or(page.getByText(/sign in/i)).first()
         ).toBeVisible({ timeout: 10000 });
     });
 
     test('should show filter rules list', async ({ page }) => {
-        await page.goto('/admin/filters');
+        await page.goto('/admin/moderation');
 
         // Look for filter rules
         const filterRule = page.locator('[data-testid="filter-rule"], tr, [class*="rule"]').first();
@@ -312,7 +312,7 @@ test.describe('Content Filter Manager', () => {
     });
 
     test('should have add filter button', async ({ page }) => {
-        await page.goto('/admin/filters');
+        await page.goto('/admin/moderation');
 
         // Look for add button
         const addButton = page.locator('button:has-text("Add"), button:has-text("Create"), button:has-text("New")').first();

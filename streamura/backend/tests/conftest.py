@@ -173,6 +173,11 @@ def test_stream(db: Session, test_user: dict) -> Stream:
         is_public=True,
         is_monetized=False,
         viewer_count=10,
+        # A live stream has a LiveKit room. Setting it here exercises the WebSocket
+        # broadcast path in like/chat/moderation/end endpoints, which would
+        # otherwise be skipped — that gap let a broadcast_to_room→broadcast method
+        # bug ship undetected (2026-06-06).
+        livekit_room_name="stream-test-room",
     )
     db.add(stream)
     db.commit()

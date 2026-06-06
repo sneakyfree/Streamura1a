@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { authApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
@@ -29,26 +30,30 @@ import { LanguageSelector } from '@/components/common/LanguageSelector';
 import { useToast } from '@/hooks/use-toast';
 
 export function SettingsPage() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading, updateUser } = useAuthStore();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
   // Profile state
   const [username, setUsername] = useState(user?.username || '');
   const [displayName, setDisplayName] = useState(user?.display_name || '');
-  const [bio, setBio] = useState('');
+  const [bio, setBio] = useState(user?.bio || '');
+
+  // Initialize toggles from the user's persisted preferences (default ON).
+  const prefs = (user?.preferences ?? {}) as Record<string, unknown>;
+  const pref = (key: string) => prefs[key] !== false; // default true unless explicitly false
 
   // Notification preferences
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [streamNotifications, setStreamNotifications] = useState(true);
-  const [tipNotifications, setTipNotifications] = useState(true);
-  const [followerNotifications, setFollowerNotifications] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(pref('email_notifications'));
+  const [pushNotifications, setPushNotifications] = useState(pref('push_notifications'));
+  const [streamNotifications, setStreamNotifications] = useState(pref('stream_notifications'));
+  const [tipNotifications, setTipNotifications] = useState(pref('tip_notifications'));
+  const [followerNotifications, setFollowerNotifications] = useState(pref('follower_notifications'));
 
   // Privacy settings
-  const [profilePublic, setProfilePublic] = useState(true);
-  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
-  const [allowMessages, setAllowMessages] = useState(true);
+  const [profilePublic, setProfilePublic] = useState(pref('profile_public'));
+  const [showOnlineStatus, setShowOnlineStatus] = useState(pref('show_online_status'));
+  const [allowMessages, setAllowMessages] = useState(pref('allow_messages'));
 
   // Theme settings
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
@@ -70,8 +75,9 @@ export function SettingsPage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      // In production, this would call an API endpoint to update the user profile
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      const updated = await authApi.updateProfile({ display_name: displayName, bio });
+      // Reflect the persisted values in the global auth store immediately.
+      updateUser({ display_name: updated.display_name, bio: updated.bio });
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been saved successfully.',
@@ -91,8 +97,16 @@ export function SettingsPage() {
   const handleSaveNotifications = async () => {
     setSaving(true);
     try {
-      // In production, this would call an API endpoint to save notification preferences
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      const updated = await authApi.updateProfile({
+        preferences: {
+          email_notifications: emailNotifications,
+          push_notifications: pushNotifications,
+          stream_notifications: streamNotifications,
+          tip_notifications: tipNotifications,
+          follower_notifications: followerNotifications,
+        },
+      });
+      updateUser({ preferences: updated.preferences });
       toast({
         title: 'Notifications Updated',
         description: 'Your notification preferences have been saved.',
@@ -112,8 +126,14 @@ export function SettingsPage() {
   const handleSavePrivacy = async () => {
     setSaving(true);
     try {
-      // In production, this would call an API endpoint to save privacy settings
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      const updated = await authApi.updateProfile({
+        preferences: {
+          profile_public: profilePublic,
+          show_online_status: showOnlineStatus,
+          allow_messages: allowMessages,
+        },
+      });
+      updateUser({ preferences: updated.preferences });
       toast({
         title: 'Privacy Settings Updated',
         description: 'Your privacy settings have been saved.',

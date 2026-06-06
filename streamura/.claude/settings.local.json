@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(alembic init:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(xargs:*)",
+      "Bash(npx tsc:*)",
+      "Bash(for api in authApi streamApi eventApi discoveryApi notificationApi stripeApi tipApi payoutApi transactionApi walletApi chatApi followApi likeApi feedApi reportApi adminApi recordingApi scheduleApi analyticsApi moderationApi subscriptionApi virtualGoodsApi communityApi messagingApi blockApi predictionsApi)",
+      "Bash(do echo \"=== $api ===\" grep \"$api\\\\.\" /home/user1-gpu/Streamura1a/streamura/frontend/src -r --include=\"*.tsx\" --include=\"*.ts\")",
+      "Bash(done)",
+      "Bash(paste - -)",
+      "Bash(ls:*)"
+    ]
+  }
+}

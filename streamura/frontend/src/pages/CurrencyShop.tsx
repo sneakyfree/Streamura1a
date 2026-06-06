@@ -299,13 +299,13 @@ export function CurrencyShop() {
 
     const purchaseMutation = useMutation({
         mutationFn: async (packId: string) => {
-            const res = await fetch('/api/v1/currency/purchase', {
+            // Backend expects pack_id as a query param (not a JSON body).
+            const res = await fetch(`/api/v1/currency/purchase?pack_id=${encodeURIComponent(packId)}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ pack_id: packId })
             });
             if (!res.ok) throw new Error('Purchase failed');
             return res.json();

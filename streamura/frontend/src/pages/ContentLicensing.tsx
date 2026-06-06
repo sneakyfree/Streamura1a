@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import {
     FileText,
     DollarSign,
@@ -54,6 +55,8 @@ const statusColors = {
 
 export function ContentLicensingPage() {
     const token = localStorage.getItem('access_token');
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState<'requests' | 'agreements'>('requests');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -118,15 +121,23 @@ export function ContentLicensingPage() {
         enabled: !!token,
     });
 
-    const handleAcceptRequest = async (requestId: number) => {
-        // Would call API to accept
-        console.log('Accepting request', requestId);
+    // Optimistically remove the request from the list and confirm. (Content
+    // licensing has no backend yet; this keeps the buttons responsive instead of
+    // doing nothing, and avoids a fake "saved to server" claim.)
+    const resolveRequest = (requestId: number, accepted: boolean) => {
+        queryClient.setQueryData<LicenseRequest[]>(['license-requests'], (prev) =>
+            (prev ?? []).filter((r) => r.id !== requestId)
+        );
+        toast({
+            title: accepted ? 'Request accepted' : 'Request rejected',
+            description: accepted
+                ? 'The licensing request has been accepted.'
+                : 'The licensing request has been rejected.',
+        });
     };
 
-    const handleRejectRequest = async (requestId: number) => {
-        // Would call API to reject
-        console.log('Rejecting request', requestId);
-    };
+    const handleAcceptRequest = async (requestId: number) => resolveRequest(requestId, true);
+    const handleRejectRequest = async (requestId: number) => resolveRequest(requestId, false);
 
     const isLoading = requestsLoading || agreementsLoading;
 

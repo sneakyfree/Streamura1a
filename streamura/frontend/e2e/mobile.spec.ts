@@ -28,11 +28,13 @@ test.describe('Mobile Navigation', () => {
     for (const device of mobileDevices) {
         test(`should show mobile navigation on ${device.name}`, async ({ page }) => {
             await page.setViewportSize({ width: device.width, height: device.height });
-            await page.goto('/');
+            await page.goto('/', { waitUntil: 'networkidle' });
 
-            // Navigation should be visible (hamburger or bottom nav)
+            // Navigation should be visible (hamburger or bottom nav). Use .first()
+            // so the assertion isn't strict-mode-fragile when both the desktop and
+            // mobile nav are briefly mounted during responsive hydration.
             await expect(
-                page.locator('[data-testid="mobile-nav"], [data-testid="hamburger-menu"], nav')
+                page.locator('[data-testid="mobile-nav"], [data-testid="hamburger-menu"], nav').first()
             ).toBeVisible({ timeout: 10000 });
         });
     }
@@ -115,11 +117,12 @@ test.describe('Tablet Layout', () => {
     for (const device of tabletDevices.slice(0, 1)) {
         test(`should show sidebar on ${device.name}`, async ({ page }) => {
             await page.setViewportSize({ width: device.width, height: device.height });
-            await page.goto('/');
+            await page.goto('/', { waitUntil: 'networkidle' });
 
-            // Should show sidebar navigation on tablet
+            // Should show sidebar navigation on tablet (.first() avoids strict-mode
+            // flake when multiple nav landmarks are present).
             await expect(
-                page.locator('[data-testid="sidebar"], aside, nav')
+                page.locator('[data-testid="sidebar"], aside, nav').first()
             ).toBeVisible({ timeout: 10000 });
         });
     }

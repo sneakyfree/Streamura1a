@@ -39,6 +39,7 @@ import { CurrencyShop } from '@/pages/CurrencyShop';
 import { TaxCenter } from '@/pages/TaxCenter';
 import { PricingPage } from '@/pages/Pricing';
 import { SitemapPage } from '@/pages/Sitemap';
+import { NotFoundPage } from '@/pages/NotFound';
 import { useAuthStore } from '@/stores/authStore';
 
 const queryClient = new QueryClient({
@@ -127,6 +128,9 @@ function AppContent() {
             <Route path="/admin/clusters" element={<ClusterManagement />} />
           </Route>
         </Route>
+
+        {/* Catch-all 404 — renders inside the Layout (with navbar) */}
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );

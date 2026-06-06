@@ -52,7 +52,8 @@ from .schemas import (
     EventResponse,
     EventDetailResponse,
     EventListResponse,
-    NotificationResponse
+    NotificationResponse,
+    UserProfileUpdate,
 )
 from .clustering import get_clustering_service, run_clustering
 from .ranking import get_ranking_service
@@ -639,6 +640,29 @@ async def confirm_password_reset(
 @router.get("/users/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
+    return current_user
+
+@router.patch("/users/me", response_model=UserResponse)
+async def update_users_me(
+    data: UserProfileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update the current user's editable profile fields."""
+    if data.display_name is not None:
+        current_user.display_name = data.display_name.strip() or None
+    if data.bio is not None:
+        current_user.bio = data.bio.strip() or None
+    if data.avatar_url is not None:
+        current_user.avatar_url = data.avatar_url.strip() or None
+    if data.preferences is not None:
+        # Merge so saving one settings tab (e.g. notifications) doesn't wipe another (privacy).
+        merged = dict(current_user.preferences or {})
+        merged.update(data.preferences)
+        # Reassign a new dict so SQLAlchemy detects the change.
+        current_user.preferences = merged
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 @router.get("/users/{user_id}", response_model=UserResponse)
@@ -3221,7 +3245,7 @@ async def post_chat_message(
 
     # Broadcast via WebSocket
     if stream.livekit_room_name:
-        await ws_manager.broadcast_to_room(
+        await ws_manager.broadcast(
             stream.livekit_room_name,
             {
                 "type": "chat_message",
@@ -3288,7 +3312,7 @@ async def delete_chat_message(
 
     # Broadcast deletion via WebSocket
     if stream and stream.livekit_room_name:
-        await ws_manager.broadcast_to_room(
+        await ws_manager.broadcast(
             stream.livekit_room_name,
             {
                 "type": "chat_message_deleted",
@@ -3349,7 +3373,7 @@ async def mute_user_in_stream(
         
         # Broadcast moderation event via WebSocket
         if stream.livekit_room_name:
-            await ws_manager.broadcast_to_room(
+            await ws_manager.broadcast(
                 stream.livekit_room_name,
                 {
                     "type": "user_moderated",
@@ -3667,7 +3691,7 @@ async def like_stream(
 
     # Broadcast like via WebSocket
     if stream.livekit_room_name:
-        await ws_manager.broadcast_to_room(
+        await ws_manager.broadcast(
             stream.livekit_room_name,
             {
                 "type": "stream_liked",
@@ -4177,7 +4201,7 @@ async def admin_delete_stream(
 
     # Broadcast stream end via WebSocket
     if stream.livekit_room_name:
-        await ws_manager.broadcast_to_room(
+        await ws_manager.broadcast(
             stream.livekit_room_name,
             {
                 "type": "stream_ended",
@@ -5570,6 +5594,24 @@ async def list_communities(
         "limit": result["limit"],
         "offset": result["offset"],
     }
+
+
+@router.get("/communities/mine", response_model=List[CommunityResponse])
+async def list_my_communities(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """List communities the current user is a member of.
+
+    NOTE: must be declared BEFORE "/communities/{community_id}" — otherwise the
+    literal "mine" is captured as community_id (int) and fails with 422.
+    Returns a bare array to match the frontend communityApi.getMyCommunities().
+    """
+    service = get_community_service(db)
+    result = await service.get_user_communities(current_user.id, limit=limit, offset=offset)
+    return [CommunityResponse.from_orm(c) for c in result["communities"]]
 
 
 @router.get("/communities/{community_id}", response_model=CommunityResponse)
@@ -9218,20 +9260,48 @@ async def get_tax_summary(
     Get tax summary for a given year.
     """
     tax_year = year or datetime.now().year
-    
-    # Mock tax summary (would aggregate from transactions)
+
+    # Aggregate the user's REAL earnings for the tax year from their transactions.
+    earning_types = ["tip_received", "ad_revenue", "stream_earning"]
+    payout_types = ["payout_requested", "payout_completed"]
+    txns = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.status == "completed",
+    ).all()
+
+    def in_year(t):
+        return t.created_at is not None and t.created_at.year == tax_year
+
+    earnings = [t for t in txns if t.transaction_type in earning_types and in_year(t)]
+    total_earnings = sum(t.amount or 0.0 for t in earnings)
+    platform_fees = sum(t.fee or 0.0 for t in earnings)
+    net_earnings = sum(
+        (t.net_amount if t.net_amount is not None else (t.amount or 0.0) - (t.fee or 0.0))
+        for t in earnings
+    )
+    estimated_tax = net_earnings * 0.20  # rough 20% set-aside estimate
+    payouts_count = len([t for t in txns if t.transaction_type in payout_types and in_year(t)])
+
+    # Documents reflect real status, not fabricated availability.
+    documents = []
+    if total_earnings >= 600:  # IRS 1099-K reporting threshold
+        documents.append({
+            'id': 1, 'type': '1099-K', 'year': tax_year,
+            'status': 'available', 'download_url': f'/api/v1/tax/documents/1',
+        })
+    documents.append({
+        'id': 2, 'type': 'W-9', 'year': tax_year,
+        'status': 'submitted' if current_user.payout_enabled else 'required',
+    })
+
     return {
         'year': tax_year,
-        'total_earnings': 42356.78,
-        'platform_fees': 4235.68,
-        'net_earnings': 38121.10,
-        'estimated_tax': 7624.22,  # 20% estimate
-        'payouts_count': 24,
-        'documents': [
-            {'id': 1, 'type': '1099-K', 'year': tax_year, 'status': 'available', 'download_url': f'/api/v1/tax/documents/1'},
-            {'id': 2, 'type': 'W-9', 'year': tax_year, 'status': 'submitted'},
-            {'id': 3, 'type': '1099-NEC', 'year': tax_year - 1, 'status': 'available', 'download_url': f'/api/v1/tax/documents/3'}
-        ]
+        'total_earnings': round(total_earnings, 2),
+        'platform_fees': round(platform_fees, 2),
+        'net_earnings': round(net_earnings, 2),
+        'estimated_tax': round(estimated_tax, 2),
+        'payouts_count': payouts_count,
+        'documents': documents,
     }
 
 
