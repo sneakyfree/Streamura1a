@@ -12,10 +12,7 @@ import {
     AlertTriangle,
     CheckCircle,
     XCircle,
-    Eye,
-    User,
     Shield,
-    TrendingUp,
     MessageSquare,
     DollarSign,
     Users
@@ -144,7 +141,6 @@ function DecisionRow({ decision, expanded, onToggle }: {
     const agent = agentConfig[decision.agent_type];
     const decisionStyle = decisionConfig[decision.decision];
     const AgentIcon = agent.icon;
-    const DecisionIcon = decisionStyle.icon;
 
     const timeAgo = (timestamp: string) => {
         const diff = Date.now() - new Date(timestamp).getTime();

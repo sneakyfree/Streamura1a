@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
     FlaskConical, ArrowRight, RefreshCw, Sparkles,
     TrendingUp, TrendingDown, Minus, AlertCircle,
     CheckCircle, XCircle, HelpCircle, Lightbulb,
-    Sliders, Target, DollarSign, Users, Star
+    Sliders, Target, DollarSign, Star
 } from 'lucide-react';
 
 /**
@@ -15,25 +15,6 @@ import {
  * would affect trust scores, visibility, and revenue. Part of the
  * Explanatory Voice chromosome of the DNA Strand architecture.
  */
-
-interface CounterfactualScenario {
-    id: string;
-    name: string;
-    description: string;
-    factors: ScenarioFactor[];
-    currentValue: number;
-    predictedValue: number;
-    confidence: number;
-    impact: 'positive' | 'negative' | 'neutral';
-}
-
-interface ScenarioFactor {
-    name: string;
-    currentValue: number | string | boolean;
-    proposedValue: number | string | boolean;
-    impact: number; // -100 to +100
-    weight: number;
-}
 
 interface WhatIfResult {
     scenarioId: string;
@@ -52,8 +33,17 @@ interface FactorContribution {
     direction: 'up' | 'down' | 'neutral';
 }
 
+interface TemplateFactor {
+    key: string;
+    label: string;
+    type: string;
+    min?: number;
+    max?: number;
+    options?: string[];
+}
+
 // Predefined scenario templates
-const SCENARIO_TEMPLATES = {
+const SCENARIO_TEMPLATES: Record<string, { name: string; icon: typeof Star; factors: TemplateFactor[] }> = {
     trust_score: {
         name: 'Trust Score Simulation',
         icon: Star,
@@ -126,7 +116,6 @@ export function CounterfactualWhatIf() {
     const [isSimulating, setIsSimulating] = useState(false);
 
     const scenario = SCENARIO_TEMPLATES[selectedScenario];
-    const Icon = scenario.icon;
 
     // Initialize factor values when scenario changes
     const initializeFactors = useCallback(() => {

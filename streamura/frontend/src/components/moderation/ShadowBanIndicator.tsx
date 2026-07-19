@@ -4,10 +4,7 @@ import {
     Eye,
     AlertTriangle,
     Clock,
-    MessageSquare,
-    Shield,
-    CheckCircle,
-    X
+    CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 

@@ -4,20 +4,26 @@ test.describe('User Registration Flow', () => {
     test('should display registration form', async ({ page }) => {
         await page.goto('/register');
 
-        await expect(page.getByRole('heading', { name: /create an account/i })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /create (your|an) account/i })).toBeVisible();
         await expect(page.getByPlaceholder(/username/i)).toBeVisible();
         await expect(page.getByPlaceholder(/email/i)).toBeVisible();
         await expect(page.getByPlaceholder(/password/i).first()).toBeVisible();
     });
 
-    test('should show validation errors for invalid input', async ({ page }) => {
+    test('should show validation error when passwords do not match', async ({ page }) => {
         await page.goto('/register');
 
-        // Click submit without filling form
+        // Registration accepts username OR email OR phone, so fill a username and
+        // mismatched passwords to trigger the form's own validation message.
+        await page.getByPlaceholder(/username/i).fill('newuser123');
+        await page.getByPlaceholder(/^create a password/i).fill('password123');
+        await page.getByPlaceholder(/confirm/i).fill('different123');
+        // The terms checkbox is required; check it so native HTML validation
+        // doesn't block submission before the JS password-match check runs.
+        await page.locator('#terms').check();
         await page.getByRole('button', { name: /create account/i }).click();
 
-        // Should show validation errors
-        await expect(page.getByText(/email is required/i)).toBeVisible();
+        await expect(page.getByText(/passwords do not match/i)).toBeVisible({ timeout: 10000 });
     });
 
     test('should navigate to login from registration page', async ({ page }) => {
@@ -45,8 +51,14 @@ test.describe('Login Flow', () => {
         await page.getByPlaceholder(/password/i).fill('wrongpassword123');
         await page.getByRole('button', { name: /sign in/i }).click();
 
-        // Should show error message
-        await expect(page.getByText(/invalid|error|incorrect/i)).toBeVisible({ timeout: 10000 });
+        // A failed login must surface a visible error. The backend returns
+        // "Invalid email or password" (401); under heavy parallel load the
+        // shared /auth/token rate limit could instead return a "too many
+        // requests" message — both are valid failure feedback, so assert the
+        // error banner appears rather than pinning exact wording.
+        await expect(
+            page.getByText(/invalid|incorrect|too many|rate limit|failed|error/i).first()
+        ).toBeVisible({ timeout: 10000 });
     });
 });
 
@@ -68,13 +80,19 @@ test.describe('Homepage', () => {
 });
 
 test.describe('Stream Viewing', () => {
-    test('should display stream player for valid stream', async ({ page }) => {
-        // Note: This test requires a valid stream to exist
-        await page.goto('/stream/1');
+    test('should display stream view for a valid stream', async ({ page }) => {
+        // The stream view route is plural: /streams/:streamId. Stream 1 is seeded.
+        await page.goto('/streams/1');
 
-        // Should show either stream player or "not found" message
-        const playerOrNotFound = await page.locator('[data-testid="stream-player"], text=/not found/i').first();
-        await expect(playerOrNotFound).toBeVisible({ timeout: 10000 });
+        // The stream's title heading should render (the seeded stream is
+        // "Main Stage Coverage"). We assert a heading appears and it is NOT the
+        // "Stream not found" fallback — independent of whether the LiveKit media
+        // server is reachable in this environment.
+        const notFound = page.getByRole('heading', { name: /stream not found/i });
+        await expect(notFound).toHaveCount(0);
+        await expect(
+            page.getByRole('heading', { name: /main stage coverage/i })
+        ).toBeVisible({ timeout: 10000 });
     });
 });
 

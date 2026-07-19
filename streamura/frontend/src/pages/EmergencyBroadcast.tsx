@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import {
     Radio,
     AlertTriangle,
@@ -10,8 +10,7 @@ import {
     Zap,
     XCircle,
     CheckCircle,
-    Bell,
-    MessageSquare
+    Bell
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -54,7 +53,6 @@ export function EmergencyBroadcastConsole() {
     });
     const [showConfirm, setShowConfirm] = useState(false);
     const [recentBroadcasts, setRecentBroadcasts] = useState<EmergencyBroadcast[]>([]);
-    const queryClient = useQueryClient();
 
     const sendBroadcast = useMutation({
         mutationFn: async (data: typeof formData) => {

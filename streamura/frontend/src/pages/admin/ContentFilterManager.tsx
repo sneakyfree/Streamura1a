@@ -8,12 +8,7 @@ import {
     Check,
     X,
     AlertTriangle,
-    Shield,
-    MessageSquare,
     Eye,
-    BarChart2,
-    ChevronDown,
-    ChevronUp,
     Play,
     Pause
 } from 'lucide-react';
@@ -114,7 +109,7 @@ export function ContentFilterManager() {
 
     const queryClient = useQueryClient();
 
-    const { data: filters = mockFilters, isLoading } = useQuery({
+    const { data: filters = mockFilters } = useQuery({
         queryKey: ['contentFilters'],
         queryFn: async () => mockFilters
     });
@@ -245,7 +240,6 @@ export function ContentFilterManager() {
             <div className="space-y-2">
                 {sortedFilters.map(filter => {
                     const action = actionConfig[filter.action];
-                    const ActionIcon = action.icon;
 
                     return (
                         <Card

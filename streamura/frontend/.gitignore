@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# e2e auth token cache + crawl artifacts
+e2e/.auth-cache/
+e2e/crawl-out/

@@ -9,7 +9,6 @@ import {
     PlayCircle,
     StopCircle,
     Settings,
-    Check,
     AlertTriangle,
     RefreshCw,
     Copy,
@@ -36,17 +35,6 @@ interface Platform {
     bitrate?: number;
 }
 
-interface SimulcastSession {
-    id: string;
-    created_at: string;
-    platforms: {
-        platform_id: string;
-        status: string;
-        viewers: number;
-    }[];
-    total_viewers: number;
-    total_duration_seconds: number;
-}
 
 // Platform icons mapping
 const platformIcons: Record<string, React.ElementType> = {
@@ -68,7 +56,7 @@ const fetchSimulcastData = async () => {
 
 // Platform status indicator
 function PlatformStatus({ status }: { status: Platform['status'] }) {
-    const statusConfig = {
+    const statusConfig: Record<Platform['status'], { color: string; label: string; icon: typeof PlayCircle; animate?: boolean }> = {
         idle: { color: 'text-slate-400', label: 'Ready', icon: PlayCircle },
         connecting: { color: 'text-yellow-400', label: 'Connecting...', icon: RefreshCw, animate: true },
         live: { color: 'text-green-400', label: 'LIVE', icon: Wifi },

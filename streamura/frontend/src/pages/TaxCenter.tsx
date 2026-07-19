@@ -37,12 +37,6 @@ interface TaxSummary {
     documents: TaxDocument[];
 }
 
-interface CurrencySettings {
-    primary_currency: string;
-    available_currencies: string[];
-    auto_convert: boolean;
-    exchange_rates: Record<string, number>;
-}
 
 // Fetch tax data
 const fetchTaxData = async () => {

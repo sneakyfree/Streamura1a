@@ -14,11 +14,9 @@ import {
     Share2,
     Maximize,
     Volume2,
-    VolumeX,
-    Settings
+    VolumeX
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 
 // Types
 interface DVRMarker {
@@ -57,7 +55,6 @@ function formatTimeAgo(seconds: number): string {
 }
 
 export function DVRPlayer({
-    streamId,
     streamUrl,
     isLive,
     dvrWindowMinutes = 120,  // 2 hour default DVR window
@@ -67,7 +64,6 @@ export function DVRPlayer({
     // Player state
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(false);
-    const [volume, setVolume] = useState(1);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [buffered, setBuffered] = useState(0);
@@ -82,10 +78,8 @@ export function DVRPlayer({
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const progressRef = useRef<HTMLDivElement>(null);
-    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-    // DVR window in seconds
-    const dvrWindowSeconds = dvrWindowMinutes * 60;
 
     // Update current time and check if at live edge
     useEffect(() => {

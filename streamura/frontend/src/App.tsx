@@ -12,7 +12,7 @@ import { StreamViewPage } from '@/pages/StreamView';
 import { ProfilePage } from '@/pages/Profile';
 import { GoLivePage } from '@/pages/GoLive';
 import { EventDetailPage } from '@/pages/EventDetail';
-import { AdminDashboard, UserManagement, ReportQueue, ModerationQueue, TicketScanner, AgentDashboard, HITLQueue, ClusterManagement } from '@/pages/admin';
+import { AdminDashboard, UserManagement, ReportQueue, ModerationQueue, TicketScanner, AgentDashboard, HITLQueue, ClusterManagement, PlatformAnalytics, ContentFilterManager, AgentAuditLog } from '@/pages/admin';
 import { RecordingPage } from '@/pages/Recording';
 import { AnalyticsPage } from '@/pages/Analytics';
 import { CommunitiesPage } from '@/pages/Communities';
@@ -123,8 +123,11 @@ function AppContent() {
             <Route path="/admin/moderation" element={<ModerationQueue />} />
             <Route path="/admin/tickets" element={<TicketScanner />} />
             <Route path="/admin/agents" element={<AgentDashboard />} />
+            <Route path="/admin/agents/audit" element={<AgentAuditLog />} />
             <Route path="/admin/hitl-queue" element={<HITLQueue />} />
             <Route path="/admin/clusters" element={<ClusterManagement />} />
+            <Route path="/admin/analytics" element={<PlatformAnalytics />} />
+            <Route path="/admin/content-filter" element={<ContentFilterManager />} />
           </Route>
         </Route>
       </Route>

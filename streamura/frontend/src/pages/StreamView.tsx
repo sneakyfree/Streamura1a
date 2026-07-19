@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { TipButton } from '@/components/payments';
 import { ChatBox } from '@/components/chat';
 import { LikeButton, FollowButton } from '@/components/social';
+import { SubscribeButton } from '@/components/subscriptions';
 
 export function StreamViewPage() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -99,13 +100,20 @@ export function StreamViewPage() {
                     creatorName={stream.title || 'this streamer'}
                   />
                 )}
-                {/* Follow the streamer (if not own stream) */}
+                {/* Follow / subscribe to the streamer (if not own stream) */}
                 {user && stream.user_id && user.id !== stream.user_id && (
-                  <FollowButton
-                    userId={stream.user_id}
-                    size="sm"
-                    variant="outline"
-                  />
+                  <>
+                    <FollowButton
+                      userId={stream.user_id}
+                      size="sm"
+                      variant="outline"
+                    />
+                    <SubscribeButton
+                      creatorId={stream.user_id}
+                      creatorName={stream.title || 'this streamer'}
+                      size="sm"
+                    />
+                  </>
                 )}
               </div>
             </div>

@@ -7,7 +7,7 @@ and initialization for the Streamura backend.
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 
@@ -51,13 +51,18 @@ else:
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 
-# Create session factory
-SessionLocal = scoped_session(
-    sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=engine
-    )
+# Create session factory.
+# NOTE: This is a plain sessionmaker, NOT a scoped_session. scoped_session is
+# thread-local, but FastAPI runs all `async def` endpoints on the single
+# event-loop thread — so a scoped session is SHARED across every concurrent
+# request. When one request's get_db() called db.close(), in-flight requests on
+# other coroutines blew up with "identity map is no longer valid" (intermittent
+# 500s under load). A plain sessionmaker hands each get_db() its own Session,
+# which is the correct request-scoped pattern.
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
 )
 
 # Base for models — re-export the single Base defined in models.py so that

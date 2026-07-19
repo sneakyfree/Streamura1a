@@ -275,10 +275,22 @@ export function EventStreamSwitcher({
                   const isTrending = streamVelocity > 10;
 
                   return (
-                    <button
+                    // Use a div[role=button] (not a <button>) because this
+                    // thumbnail contains its own PiP <button>, and a button
+                    // nested inside a button is invalid HTML / a React
+                    // hydration error.
+                    <div
                       key={stream.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleStreamSelect(stream)}
-                      className={`flex-shrink-0 w-1/4 rounded-lg overflow-hidden border-2 transition-all ${selectedStream?.id === stream.id
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleStreamSelect(stream);
+                        }
+                      }}
+                      className={`flex-shrink-0 w-1/4 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectedStream?.id === stream.id
                         ? 'border-primary-500 ring-2 ring-primary-500/30'
                         : 'border-transparent hover:border-slate-600'
                         }`}
@@ -340,7 +352,7 @@ export function EventStreamSwitcher({
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

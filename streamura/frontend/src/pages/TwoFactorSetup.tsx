@@ -85,24 +85,6 @@ export function TwoFactorSetup() {
         onError: () => setError('Invalid verification code. Please try again.')
     });
 
-    const disable2FA = useMutation({
-        mutationFn: async (code: string) => {
-            const res = await fetch('/api/v1/auth/2fa/disable', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ code })
-            });
-            return res.json();
-        },
-        onSuccess: () => {
-            setStep('overview');
-            queryClient.invalidateQueries({ queryKey: ['2faStatus'] });
-        }
-    });
-
     // Mock setup data
     const mockSetupData: TwoFactorSetup = {
         secret: 'JBSWY3DPEHPK3PXP',
@@ -289,7 +271,7 @@ export function TwoFactorSetup() {
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-4">
-                        {setupData.backup_codes.map((code, index) => (
+                        {setupData.backup_codes.map((code: string, index: number) => (
                             <button
                                 key={index}
                                 onClick={() => copyToClipboard(code, index)}

@@ -810,7 +810,17 @@ async def get_viewer_token(
         raise HTTPException(status_code=403, detail=t("auth.forbidden", locale))
 
     if not stream.livekit_room_name:
-        raise HTTPException(status_code=400, detail=t("stream.unavailable", locale))
+        # A live/active stream may not yet have a room provisioned (e.g. seeded
+        # data, or a broadcaster that never called the broadcast-token endpoint).
+        # Lazily provision one so viewers can connect, mirroring the broadcaster
+        # path. Only do this for streams that are actually meant to be watchable;
+        # ended/scheduled streams without a room stay unavailable.
+        if stream.status in ("live", "active", "created"):
+            stream.livekit_room_name = streaming_service.generate_room_name(stream.id)
+            db.commit()
+            db.refresh(stream)
+        else:
+            raise HTTPException(status_code=400, detail=t("stream.unavailable", locale))
 
     # Get viewer connection info
     try:
@@ -5570,6 +5580,23 @@ async def list_communities(
         "limit": result["limit"],
         "offset": result["offset"],
     }
+
+
+@router.get("/communities/mine", response_model=List[CommunityResponse])
+async def list_my_communities(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """List the communities the current user belongs to.
+
+    NOTE: must be declared before ``/communities/{community_id}`` so the literal
+    ``mine`` segment is not captured as an integer path param (which 422s).
+    """
+    service = get_community_service(db)
+    result = await service.get_user_communities(current_user.id, limit=limit, offset=offset)
+    return [CommunityResponse.from_orm(c) for c in result["communities"]]
 
 
 @router.get("/communities/{community_id}", response_model=CommunityResponse)

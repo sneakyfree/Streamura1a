@@ -28,13 +28,6 @@ interface VerificationStatus {
     rejection_reason?: string;
 }
 
-interface VerificationDocument {
-    id: string;
-    name: string;
-    type: string;
-    uploaded_at: string;
-    status: 'pending' | 'approved' | 'rejected';
-}
 
 // Fetch verification status
 const fetchVerificationStatus = async () => {
@@ -320,7 +313,7 @@ export function NewsVerification() {
                             id="doc-upload"
                         />
                         <label htmlFor="doc-upload">
-                            <Button variant="secondary" as="span">
+                            <Button variant="secondary">
                                 <FileText className="w-4 h-4 mr-2" />
                                 Select Files
                             </Button>

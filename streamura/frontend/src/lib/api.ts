@@ -48,6 +48,20 @@ api.interceptors.response.use(
       }
     }
 
+    // Surface the backend's human-readable error instead of the opaque
+    // "Request failed with status code 4xx" that axios puts on error.message.
+    // FastAPI returns either {detail: "msg"} or {detail: [{msg, loc}, ...]} for
+    // validation errors — normalise both into error.message so UI code that
+    // shows error.message (login, forms, toasts) displays something useful.
+    const detail = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === 'string' && detail.trim()) {
+      error.message = detail;
+    } else if (Array.isArray(detail) && detail.length > 0) {
+      error.message = detail
+        .map((d) => (d && typeof d === 'object' && 'msg' in d ? (d as { msg: string }).msg : String(d)))
+        .join(', ');
+    }
+
     return Promise.reject(error);
   }
 );

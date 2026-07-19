@@ -6,3 +6,6 @@ export { TicketScanner } from './TicketScanner';
 export { AgentDashboard } from './AgentDashboard';
 export { HITLQueue } from './HITLQueue';
 export { ClusterManagement } from './ClusterManagement';
+export { PlatformAnalytics } from './PlatformAnalytics';
+export { ContentFilterManager } from './ContentFilterManager';
+export { AgentAuditLog } from './AgentAuditLog';

@@ -201,7 +201,7 @@ export function AdminDashboard() {
                 </div>
               </Link>
               <Link
-                to="/admin/streams"
+                to="/admin/moderation"
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
               >
                 <Video className="h-5 w-5 text-green-400" />
@@ -218,6 +218,36 @@ export function AdminDashboard() {
                 <div>
                   <span className="text-white block">Agent Dashboard</span>
                   <span className="text-xs text-slate-400">AI agent monitoring</span>
+                </div>
+              </Link>
+              <Link
+                to="/admin/analytics"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <TrendingUp className="h-5 w-5 text-blue-400" />
+                <div>
+                  <span className="text-white block">Platform Analytics</span>
+                  <span className="text-xs text-slate-400">Revenue & growth metrics</span>
+                </div>
+              </Link>
+              <Link
+                to="/admin/content-filter"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <AlertTriangle className="h-5 w-5 text-orange-400" />
+                <div>
+                  <span className="text-white block">Content Filters</span>
+                  <span className="text-xs text-slate-400">Moderation rules</span>
+                </div>
+              </Link>
+              <Link
+                to="/admin/agents/audit"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <Activity className="h-5 w-5 text-cyan-400" />
+                <div>
+                  <span className="text-white block">Agent Audit Log</span>
+                  <span className="text-xs text-slate-400">AI decision history</span>
                 </div>
               </Link>
             </CardContent>

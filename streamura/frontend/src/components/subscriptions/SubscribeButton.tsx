@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { subscriptionApi, type SubscriptionTier, type SubscriptionStatus } from '@/lib/api';
 import { SubscriptionTierCard } from './SubscriptionTierCard';
@@ -91,23 +90,29 @@ export function SubscribeButton({
   const isSubscribed = subscriptionStatus?.is_subscribed ?? false;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={isSubscribed ? 'secondary' : variant} size={size} className={className}>
-          {isSubscribed ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Subscribed
-            </>
-          ) : (
-            <>
-              <Crown className="h-4 w-4 mr-2" />
-              Subscribe
-            </>
-          )}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <>
+      {/* The project's Dialog renders nothing while closed, so the trigger must
+          live OUTSIDE it (it is not a Radix-style context trigger). */}
+      <Button
+        variant={isSubscribed ? 'secondary' : variant}
+        size={size}
+        className={className}
+        onClick={() => setOpen(true)}
+      >
+        {isSubscribed ? (
+          <>
+            <Check className="h-4 w-4 mr-2" />
+            Subscribed
+          </>
+        ) : (
+          <>
+            <Crown className="h-4 w-4 mr-2" />
+            Subscribe
+          </>
+        )}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isSubscribed ? 'Manage Subscription' : 'Subscribe'} to {creatorName || 'this creator'}
@@ -148,8 +153,9 @@ export function SubscribeButton({
             <span>Redirecting to checkout...</span>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
