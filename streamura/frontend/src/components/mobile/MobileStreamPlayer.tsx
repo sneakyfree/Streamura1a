@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, TouchEvent } from 'react';
+import { useState, useEffect, useRef, type TouchEvent } from 'react';
 import {
     Play,
     Pause,
@@ -14,7 +14,6 @@ import {
     SkipForward,
     Wifi,
     WifiOff,
-    ChevronUp,
     ChevronDown,
     Gift,
     Users
@@ -42,7 +41,6 @@ interface GestureState {
 // Mobile-optimized stream player
 export function MobileStreamPlayer({
     streamUrl,
-    streamerId,
     streamerName,
     title,
     viewerCount,
@@ -58,13 +56,13 @@ export function MobileStreamPlayer({
     const [quality, setQuality] = useState<'auto' | '1080p' | '720p' | '480p' | '360p'>('auto');
     const [showSettings, setShowSettings] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
-    const [connectionQuality, setConnectionQuality] = useState<'good' | 'fair' | 'poor'>('good');
+    const [connectionQuality] = useState<'good' | 'fair' | 'poor'>('good');
     const [brightness, setBrightness] = useState(1);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const gestureRef = useRef<GestureState>({ startX: 0, startY: 0, startTime: 0, direction: 'none' });
-    const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     // Auto-hide controls
     useEffect(() => {
@@ -121,7 +119,7 @@ export function MobileStreamPlayer({
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-        const { startX, startY, startTime, direction } = gestureRef.current;
+        const { startX, startY, startTime } = gestureRef.current;
         const endX = e.changedTouches[0].clientX;
         const endY = e.changedTouches[0].clientY;
         const duration = Date.now() - startTime;
@@ -158,8 +156,11 @@ export function MobileStreamPlayer({
                 await containerRef.current.requestFullscreen();
                 setIsFullscreen(true);
                 // Lock to landscape on mobile
-                if (screen.orientation?.lock) {
-                    await screen.orientation.lock('landscape');
+                const orientation = screen.orientation as ScreenOrientation & {
+                    lock?: (orientation: string) => Promise<void>;
+                };
+                if (orientation?.lock) {
+                    await orientation.lock('landscape');
                 }
             } else {
                 await document.exitFullscreen();

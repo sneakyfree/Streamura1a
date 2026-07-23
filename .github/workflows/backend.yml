@@ -8,8 +8,11 @@ on:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: [self-hosted, linux, x64]
+    # 45 min: the 516-test suite takes ~15 min of pytest wall time alone when
+    # the shared Kit 0 box is loaded; the previous 20-minute cap canceled a
+    # run at 83% with every test up to that point passing.
+    timeout-minutes: 45
 
     env:
       # SQLite for CI; the app supports Postgres via DATABASE_URL in prod.
@@ -19,6 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: runner-lint (hosted runners are billing-locked)
+        run: bash "$GITHUB_WORKSPACE/.github/lint/lint-runner-labels.sh" "$GITHUB_WORKSPACE/.github/workflows"
 
       - name: Setup Python
         uses: actions/setup-python@v5

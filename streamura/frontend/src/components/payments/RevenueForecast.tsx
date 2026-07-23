@@ -6,7 +6,6 @@ import {
     Minus,
     DollarSign,
     Calendar,
-    Target,
     Info,
     ChevronDown,
     ChevronUp,
@@ -135,7 +134,7 @@ function ForecastChart({
         const confidencePath = `${upperPoints} ${lowerPoints} Z`;
 
         // Actual data points if available
-        const actualPoints = data.filter(d => d.actual !== undefined).map((d, i) => {
+        const actualPoints = data.filter(d => d.actual !== undefined).map((d) => {
             const originalIndex = data.indexOf(d);
             const x = padding.left + (originalIndex / Math.max(1, data.length - 1)) * chartWidth;
             const y = padding.top + chartHeight - ((d.actual! - minValue) / range) * chartHeight;
@@ -188,7 +187,7 @@ function ForecastChart({
             {data.map((d, i) => (
                 <text
                     key={i}
-                    x={chartData.padding?.left + (i / Math.max(1, data.length - 1)) * (width - (chartData.padding?.left || 0) - (chartData.padding?.right || 0))}
+                    x={(chartData.padding?.left || 0) + (i / Math.max(1, data.length - 1)) * (width - (chartData.padding?.left || 0) - (chartData.padding?.right || 0))}
                     y={height - 5}
                     textAnchor="middle"
                     className="fill-slate-500 text-xs"
@@ -301,8 +300,8 @@ export function RevenueForecast({
 
     const forecastData = data || mockData;
     const trend = forecastData.trend;
-    const TrendIcon = trendConfig[trend?.direction || 'stable']?.icon || Minus;
-    const trendColor = trendConfig[trend?.direction || 'stable']?.color || 'text-slate-400';
+    const TrendIcon = trendConfig[(trend?.direction || 'stable') as keyof typeof trendConfig]?.icon || Minus;
+    const trendColor = trendConfig[(trend?.direction || 'stable') as keyof typeof trendConfig]?.color || 'text-slate-400';
 
     if (isLoading) {
         return (
@@ -356,7 +355,7 @@ export function RevenueForecast({
                             <TrendIcon className="h-5 w-5" />
                             <div>
                                 <div className="text-sm font-medium">
-                                    {trendConfig[trend.direction]?.label || 'Unknown'}
+                                    {trendConfig[trend.direction as keyof typeof trendConfig]?.label || 'Unknown'}
                                 </div>
                                 <div className="text-xs opacity-75">
                                     {trend.velocity > 0 ? '+' : ''}{trend.velocity.toFixed(1)}% / month
@@ -464,7 +463,7 @@ export function RevenueForecast({
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <div className="text-xs text-slate-500 mb-2">Contributing Factors</div>
-                            {trend.growth_contributors.map((c, i) => (
+                            {trend.growth_contributors.map((c: { factor: string; impact: number }, i: number) => (
                                 <div key={i} className="flex items-center justify-between py-1">
                                     <span className="text-sm text-slate-300">{c.factor}</span>
                                     <span className="text-sm text-green-400">+{(c.impact * 100).toFixed(0)}%</span>

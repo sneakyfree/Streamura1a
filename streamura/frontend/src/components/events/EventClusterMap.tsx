@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
     MapPin,
     Users,
@@ -7,9 +7,7 @@ import {
     ZoomOut,
     Layers,
     Radio,
-    ChevronRight,
     Play,
-    Maximize2
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';

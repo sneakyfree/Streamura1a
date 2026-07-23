@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
-    Activity, Clock, CheckCircle, XCircle, AlertTriangle,
+    Activity, CheckCircle, AlertTriangle,
     TrendingUp, TrendingDown, RefreshCw, Zap, Target,
     BarChart3, Timer, Cpu, Gauge
 } from 'lucide-react';
@@ -41,16 +41,6 @@ interface SystemHealth {
     avgSystemLatency: number;
     hitlQueueSize: number;
     activeAgents: number;
-}
-
-interface LatencyBreakdown {
-    timestamp: string;
-    discovery: number;
-    moderation: number;
-    payout: number;
-    trust: number;
-    licensing: number;
-    emergency: number;
 }
 
 const AGENT_TYPES = [
@@ -166,7 +156,7 @@ const mockSystemHealth: SystemHealth = {
 
 export function AgentPerformanceMetrics() {
     const [agentMetrics, setAgentMetrics] = useState<AgentMetrics[]>(mockAgentMetrics);
-    const [systemHealth, setSystemHealth] = useState<SystemHealth>(mockSystemHealth);
+    const [systemHealth] = useState<SystemHealth>(mockSystemHealth);
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
     const [isRefreshing, setIsRefreshing] = useState(false);

@@ -56,7 +56,7 @@ export function BreakingNewsBanner({
 }: BreakingNewsBannerProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible] = useState(true);
 
     const activeItems = items.filter(item => !dismissed.has(item.id));
 

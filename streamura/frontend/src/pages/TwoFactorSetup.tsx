@@ -85,7 +85,7 @@ export function TwoFactorSetup() {
         onError: () => setError('Invalid verification code. Please try again.')
     });
 
-    const disable2FA = useMutation({
+    useMutation({
         mutationFn: async (code: string) => {
             const res = await fetch('/api/v1/auth/2fa/disable', {
                 method: 'POST',
@@ -289,7 +289,7 @@ export function TwoFactorSetup() {
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-4">
-                        {setupData.backup_codes.map((code, index) => (
+                        {setupData.backup_codes.map((code: string, index: number) => (
                             <button
                                 key={index}
                                 onClick={() => copyToClipboard(code, index)}

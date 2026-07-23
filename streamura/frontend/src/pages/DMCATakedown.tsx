@@ -7,8 +7,6 @@ import {
     Clock,
     CheckCircle,
     XCircle,
-    Link,
-    User,
     MessageSquare,
     ChevronRight,
     Plus
@@ -115,7 +113,7 @@ export function DMCATakedown() {
     });
 
     const submitRequest = useMutation({
-        mutationFn: async (data: DMCAFormData) => {
+        mutationFn: async (_data: DMCAFormData) => {
             // Would call API
             return { id: `dmca-${Date.now()}`, status: 'pending' };
         },

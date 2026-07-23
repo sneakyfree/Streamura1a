@@ -7,7 +7,14 @@ import * as path from 'path';
  * then visit every authenticated route. Records what data actually rendered.
  */
 
-const TOKEN = fs.readFileSync('/tmp/qa_token.txt', 'utf8').trim();
+// The QA token is a manual precondition (see qa-setup.sh: run it against a
+// live backend first). In CI / fresh checkouts the file does not exist —
+// skip the authed suite instead of crashing the whole Playwright run at
+// module load.
+const TOKEN = fs.existsSync('/tmp/qa_token.txt')
+    ? fs.readFileSync('/tmp/qa_token.txt', 'utf8').trim()
+    : '';
+test.skip(!TOKEN, 'requires /tmp/qa_token.txt — run e2e/qa-setup.sh against a live backend first');
 const QA_USER = { id: 11, username: 'qa_user', email: 'qa@streamura.com', is_verified: false, balance: 0, lifetime_earnings: 0 };
 
 interface Rec {
