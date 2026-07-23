@@ -251,7 +251,7 @@ export function useTouchGestures(options: {
         let startX = 0;
         let startY = 0;
         let lastTap = 0;
-        let longPressTimer: NodeJS.Timeout | null = null;
+        let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
         const handleTouchStart = (e: TouchEvent) => {
             startX = e.touches[0].clientX;

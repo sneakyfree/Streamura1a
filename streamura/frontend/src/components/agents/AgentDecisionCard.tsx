@@ -5,7 +5,6 @@ import {
     ChevronUp,
     AlertTriangle,
     CheckCircle,
-    Clock,
     User,
     Shield,
     TrendingUp,

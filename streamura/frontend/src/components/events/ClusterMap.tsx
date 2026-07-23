@@ -148,7 +148,7 @@ export function ClusterMap({
     };
 
     // Calculate mock positions for demo (in production, use actual Mapbox/Leaflet)
-    const getClusterPosition = (cluster: EventCluster, index: number) => {
+    const getClusterPosition = (_cluster: EventCluster, index: number) => {
         // Distribute clusters in a grid pattern for demo
         const cols = 4;
         const row = Math.floor(index / cols);

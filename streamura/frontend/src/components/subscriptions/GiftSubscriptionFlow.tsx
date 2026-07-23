@@ -8,9 +8,7 @@ import {
     Check,
     X,
     Heart,
-    Star,
     Sparkles,
-    MessageSquare,
     ChevronRight
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -59,9 +57,7 @@ const mockRecipients: GiftRecipient[] = [
 type Step = 'tier' | 'recipient' | 'message' | 'payment' | 'complete';
 
 export function GiftSubscriptionFlow({
-    creatorId,
     creatorName,
-    creatorAvatar,
     tiers = mockTiers,
     onComplete,
     onCancel
@@ -74,7 +70,7 @@ export function GiftSubscriptionFlow({
     const [searchQuery, setSearchQuery] = useState('');
     const [message, setMessage] = useState('');
     const [anonymous, setAnonymous] = useState(false);
-    const [giftId, setGiftId] = useState<string | null>(null);
+    const [, setGiftId] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
 

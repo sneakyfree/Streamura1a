@@ -7,7 +7,6 @@ import {
     Copy,
     Check,
     X,
-    RefreshCw,
     AlertTriangle,
     ChevronRight,
     Download,
@@ -34,7 +33,7 @@ interface SetupData {
 }
 
 // Mock QR code placeholder
-function QRCodePlaceholder({ url }: { url: string }) {
+function QRCodePlaceholder(_props: { url: string }) {
     return (
         <div className="w-48 h-48 bg-white p-2 rounded-lg mx-auto">
             <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 rounded flex items-center justify-center">
@@ -62,7 +61,7 @@ export function TwoFactorSetup({ isEnabled, onComplete, onCancel }: TwoFactorSet
     const [savedBackupCodes, setSavedBackupCodes] = useState(false);
 
     const initializeSetup = useMutation({
-        mutationFn: async (selectedMethod: Method) => {
+        mutationFn: async (_selectedMethod: Method) => {
             // Mock API call
             await new Promise(r => setTimeout(r, 1000));
             return {
@@ -98,7 +97,7 @@ export function TwoFactorSetup({ isEnabled, onComplete, onCancel }: TwoFactorSet
     });
 
     const disable2FA = useMutation({
-        mutationFn: async (code: string) => {
+        mutationFn: async (_code: string) => {
             await new Promise(r => setTimeout(r, 500));
             return { success: true };
         },

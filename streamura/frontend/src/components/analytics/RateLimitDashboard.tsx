@@ -3,8 +3,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
     Shield, AlertTriangle, Clock, BarChart3,
-    RefreshCw, TrendingUp, Users, Zap,
-    XCircle, CheckCircle, Timer, Activity
+    RefreshCw, TrendingUp, Zap,
+    XCircle, Timer, Activity
 } from 'lucide-react';
 
 /**
@@ -89,8 +89,8 @@ const mockTopOffenders: TopOffender[] = [
 
 export function RateLimitDashboard() {
     const [endpointStats, setEndpointStats] = useState<EndpointStats[]>(mockEndpointStats);
-    const [violations, setViolations] = useState<ViolationEvent[]>(mockViolations);
-    const [topOffenders, setTopOffenders] = useState<TopOffender[]>(mockTopOffenders);
+    const [violations] = useState<ViolationEvent[]>(mockViolations);
+    const [topOffenders] = useState<TopOffender[]>(mockTopOffenders);
     const [configs] = useState<RateLimitConfig[]>(mockRateLimitConfigs);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [autoRefresh, setAutoRefresh] = useState(true);

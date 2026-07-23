@@ -3,12 +3,10 @@ import {
     ShieldAlert,
     AlertTriangle,
     CheckCircle,
-    Clock,
     XCircle,
     Eye,
     Activity,
     Zap,
-    TrendingUp,
     ChevronDown,
     ChevronUp
 } from 'lucide-react';

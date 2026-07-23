@@ -43,15 +43,6 @@ interface CurrencyBalance {
     last_purchase?: string;
 }
 
-interface PurchaseHistory {
-    transaction_id: string;
-    type: string;
-    coins: number;
-    usd_value?: number;
-    description: string;
-    created_at: string;
-}
-
 // Fetch data
 const fetchPacks = async () => {
     const res = await fetch('/api/v1/currency/packs', {

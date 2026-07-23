@@ -11,7 +11,6 @@ import {
     Shield,
     Zap,
     Globe,
-    ChevronRight,
     Activity
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';

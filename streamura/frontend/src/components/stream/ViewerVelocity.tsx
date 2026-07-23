@@ -108,7 +108,6 @@ const sizeConfig = {
 };
 
 export function ViewerVelocity({
-    streamId,
     currentViewers,
     previousViewers = 0,
     velocityPerMinute,
@@ -184,7 +183,7 @@ export function ViewerVelocityBadge({
 }
 
 // Hook for real-time velocity tracking
-export function useViewerVelocity(streamId: string) {
+export function useViewerVelocity(_streamId: string) {
     const [history, setHistory] = useState<{ time: number; viewers: number }[]>([]);
     const [velocity, setVelocity] = useState<VelocityState>({
         trend: 'steady',

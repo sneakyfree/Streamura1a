@@ -12,6 +12,7 @@ interface PushSubscriptionOptions {
 
 interface UsePushNotificationsReturn {
     permission: PermissionState;
+    isSupported: boolean;
     isSubscribed: boolean;
     isLoading: boolean;
     subscribe: () => Promise<void>;
@@ -143,6 +144,7 @@ export function usePushNotifications({
 
     return {
         permission,
+        isSupported: isPushSupported,
         isSubscribed,
         isLoading,
         subscribe,

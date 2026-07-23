@@ -10,8 +10,6 @@ import {
     Shield,
     AlertTriangle,
     LogOut,
-    X,
-    Check,
     RefreshCw
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -193,7 +191,7 @@ export function SessionManager() {
 
     const queryClient = useQueryClient();
 
-    const { data: sessions = mockSessions, isLoading, refetch } = useQuery({
+    const { data: sessions = mockSessions, refetch } = useQuery({
         queryKey: ['activeSessions'],
         queryFn: async () => mockSessions
     });

@@ -3,15 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import {
     BarChart2,
     Users,
-    TrendingUp,
-    TrendingDown,
     DollarSign,
     Eye,
     Clock,
-    Calendar,
     ArrowUpRight,
     ArrowDownRight,
-    Activity,
     Radio,
     RefreshCw
 } from 'lucide-react';
@@ -157,7 +153,7 @@ function BarChart({ data, label }: { data: { label: string; value: number }[]; l
 export function PlatformAnalytics() {
     const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
 
-    const { data: stats = mockStats, isLoading, refetch } = useQuery({
+    const { data: stats = mockStats, refetch } = useQuery({
         queryKey: ['platformStats', dateRange],
         queryFn: async () => mockStats
     });
