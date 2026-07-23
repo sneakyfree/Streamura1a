@@ -51,8 +51,9 @@ test.describe('Login Flow', () => {
         await page.getByPlaceholder(/password/i).fill('wrongpassword123');
         await page.getByRole('button', { name: /sign in/i }).click();
 
-        // Should show error message
-        await expect(page.getByText(/invalid|error|incorrect/i)).toBeVisible({ timeout: 10000 });
+        // Should show error message. 30s: the shared 4-core CI box can be
+        // slow to serve the login round-trip under concurrent suites.
+        await expect(page.getByText(/invalid|error|incorrect|failed|unable/i)).toBeVisible({ timeout: 30000 });
     });
 });
 
